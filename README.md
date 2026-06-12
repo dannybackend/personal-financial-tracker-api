@@ -1,5 +1,7 @@
 # Personal Financial Tracker API
 
+[Українська версія](README.uk.md)
+
 A small RESTful API for a personal budget tracker. The project is meant for tracking personal income and expenses while practicing core backend development concepts.
 
 ## Idea
