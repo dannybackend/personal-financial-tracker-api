@@ -1,0 +1,5 @@
+# Cursor
+
+Scoped rules live in `.cursor/rules/` (token-efficient — only relevant rules load per file).
+
+Codex / VS Code: see `AGENTS.md`. Human workflow: see `CONTRIBUTING.md`.
