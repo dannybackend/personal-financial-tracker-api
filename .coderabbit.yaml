@@ -1,0 +1,21 @@
+language: "uk"
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+
+  path_instructions:
+    - path: "src/routes/**"
+      instructions: "Check that every route validates input with Zod before business logic, handles errors with correct HTTP status codes, and documents exported handlers/functions with JSDoc."
+    - path: "src/db/**"
+      instructions: "Check schema design, missing indexes, migration safety, and whether transactions are used when multiple tables are modified."
+    - path: "**/*.ts"
+      instructions: "Enforce strict TypeScript: no any, explicit return types on exported functions, named exports only, and descriptive variable names."
+    - path: "src/**"
+      instructions: "Check that secrets, passwords, tokens, and PII are never logged or returned in responses."
+    - path: "src/config/**"
+      instructions: "Check that environment variables are validated with Zod at startup and secrets are not hardcoded."
