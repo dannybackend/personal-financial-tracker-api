@@ -1,8 +1,14 @@
-import { defineConfig } from 'drizzle-kit';
+/// <reference types="node" />
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is required');
-}
+import { defineConfig } from 'drizzle-kit';
+import { env as nodeEnv } from 'node:process';
+import { z } from 'zod';
+
+const envSchema = z.object({
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL environment variable is required'),
+});
+
+const env = envSchema.parse(nodeEnv);
 
 /**
  * Drizzle Kit configuration.
@@ -15,7 +21,6 @@ export default defineConfig({
   schema: './src/db/schema.ts',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL,
+    url: env.DATABASE_URL,
   },
 });
-
