@@ -1,7 +1,8 @@
 # Project Instructions for Codex
 
-> Single source of truth for AI agents (Codex / VS Code).
+> Single source of truth for AI agents (Codex / VS Code / Antigravity).
 > Cursor uses scoped rules in `.cursor/rules/` — keep both in sync when changing standards.
+> Antigravity uses scoped rules in `.agents/rules/` — keep both in sync when changing standards.
 
 ## Stack
 - Runtime: Node.js 24+

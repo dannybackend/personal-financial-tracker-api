@@ -1,0 +1,24 @@
+---
+trigger: glob
+globs: src/routes/**
+description: Hono route handler pattern and HTTP responses
+---
+
+# Route Handlers
+
+Every handler, in order:
+1. Validate input with Zod schema
+2. Business logic
+3. Typed response with correct HTTP status
+
+## HTTP Status Codes
+400 bad input · 401 unauthenticated · 403 forbidden · 404 not found · 422 validation · 500 server error
+
+## Conventions
+- JSDoc on exported functions — *what* and *why*, not just *how*
+- Explicit error handling; do not wrap everything in blind try/catch
+- Never leak internal errors to the client
+- Comment non-obvious edge cases
+
+## Tests
+Every new endpoint needs at least one Vitest integration test (`src/routes/*.test.ts`).
