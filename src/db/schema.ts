@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, integer, timestamp, numeric, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, integer, timestamp, numeric, pgEnum, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // -- ENUMS --
@@ -27,7 +27,9 @@ export const accounts = pgTable('accounts', {
   type: accountTypeEnum('type').notNull(),
   currency: varchar('currency', { length: 10 }).notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('accounts_user_id_idx').on(table.userId),
+]);
 
 export const categories = pgTable('categories', {
   id: serial('id').primaryKey(),
@@ -39,7 +41,9 @@ export const categories = pgTable('categories', {
   color: varchar('color', { length: 50 }),
   icon: varchar('icon', { length: 50 }),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('categories_user_id_idx').on(table.userId),
+]);
 
 export const transactions = pgTable('transactions', {
   id: serial('id').primaryKey(),
@@ -56,7 +60,11 @@ export const transactions = pgTable('transactions', {
   description: text('description'),
   date: timestamp('date', { mode: 'date' }).notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('transactions_user_id_idx').on(table.userId),
+  index('transactions_account_id_idx').on(table.accountId),
+  index('transactions_category_id_idx').on(table.categoryId),
+]);
 
 export const budgets = pgTable('budgets', {
   id: serial('id').primaryKey(),
@@ -69,7 +77,10 @@ export const budgets = pgTable('budgets', {
   amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
   period: budgetPeriodEnum('period').notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('budgets_user_id_idx').on(table.userId),
+  index('budgets_category_id_idx').on(table.categoryId),
+]);
 
 // -- RELATIONS --
 
