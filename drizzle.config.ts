@@ -16,7 +16,7 @@ const env = envSchema.parse(process.env);
  */
 export default defineConfig({
   out: './src/db/migrations',
-  schema: './src/db/schema.ts',
+  schema: './src/db/*.ts',
   dialect: 'postgresql',
   dbCredentials: {
     url: env.DATABASE_URL,

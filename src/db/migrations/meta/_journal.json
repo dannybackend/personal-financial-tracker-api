@@ -15,6 +15,13 @@
       "when": 1781526569803,
       "tag": "0001_unknown_lady_ursula",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781545852350,
+      "tag": "0002_true_sunspot",
+      "breakpoints": true
     }
   ]
 }
