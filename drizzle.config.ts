@@ -1,14 +1,12 @@
-/// <reference types="node" />
-
+import 'dotenv/config';
 import { defineConfig } from 'drizzle-kit';
-import { env as nodeEnv } from 'node:process';
 import { z } from 'zod';
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL environment variable is required'),
 });
 
-const env = envSchema.parse(nodeEnv);
+const env = envSchema.parse(process.env);
 
 /**
  * Drizzle Kit configuration.
