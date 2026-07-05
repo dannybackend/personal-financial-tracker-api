@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, index } from 'drizzle-orm/pg-core';
 
 /**
  * Better Auth — user table.
@@ -33,7 +33,9 @@ export const authSession = pgTable('auth_session', {
   userId: text('user_id')
     .notNull()
     .references(() => authUser.id, { onDelete: 'cascade' }),
-});
+}, (table) => [
+  index('auth_session_user_id_idx').on(table.userId),
+]);
 
 /**
  * Better Auth — account table (OAuth provider accounts).
@@ -56,7 +58,9 @@ export const authAccount = pgTable('auth_account', {
   password: text('password'),
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
-});
+}, (table) => [
+  index('auth_account_user_id_idx').on(table.userId),
+]);
 
 /**
  * Better Auth — verification table.

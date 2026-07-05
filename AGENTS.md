@@ -71,3 +71,23 @@ Every route handler must follow this order:
 ## Task Scope
 - Tackle one endpoint or one module at a time
 - After generating code, summarize what was done and flag any edge cases not yet handled
+
+## When you make an architectural decision
+
+Any time you implement something involving a trade-off between viable
+approaches (schema design, cascade/delete behavior, auth strategy, caching,
+indexing, data types), append a new entry to docs/DECISIONS.md:
+
+### Short title of the decision
+**Рішення:** what was chosen
+**Чому:** why, in 1-2 sentences
+**Компроміс:** (optional) known trade-off
+**Альтернатива яку відкинули:** (optional) what was considered and rejected
+
+Append only — never rewrite or delete existing entries.
+
+When you complete a checkpoint or task
+
+Check off the corresponding item in docs/PROGRESS.md. If the work isn't
+listed, add it under the correct phase first. Follow-up work discovered along
+the way becomes a new unchecked item, not a silent omission.

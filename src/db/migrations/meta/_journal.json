@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1781505978748,
-      "tag": "0000_lyrical_the_santerians",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1781526569803,
-      "tag": "0001_unknown_lady_ursula",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1781545852350,
-      "tag": "0002_true_sunspot",
+      "when": 1783271663363,
+      "tag": "0000_smooth_sway",
       "breakpoints": true
     }
   ]
