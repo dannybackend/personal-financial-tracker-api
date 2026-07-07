@@ -6,6 +6,7 @@
 ---
 
 ## Фаза 1 — Тиждень 1-2: Середовище і орієнтація
+
 - [x] Docker Desktop (all-users install) + `docker-compose.yml` (PostgreSQL + Redis)
 - [x] Node.js 24, TypeScript 5 (strict mode), ESLint
 - [x] Hono сервер запускається (`npm run dev`)
@@ -13,6 +14,7 @@
 - [x] CodeRabbit підключено, `.coderabbit.yaml` налаштовано
 
 ## Фаза 1 — Тиждень 3-5: Проєкт 1 — Personal Financial Tracker API
+
 - [x] Схема БД: `users`, `accounts`, `categories`, `transactions`, `budgets`
 - [x] Індекси на всіх foreign key колонках
 - [x] Перехід на UUID primary keys
@@ -29,6 +31,7 @@
 - [ ] Деплой на Railway або Render
 
 ## Заплановано, роботу не почато
+
 - [ ] `external_id` / `external_source` в `accounts` (окрема міграція)
 - [ ] GitHub Actions CI (typecheck + lint + test) — додати коли з'являться перші тести
 - [ ] Merchants таблиця — Фаза 2

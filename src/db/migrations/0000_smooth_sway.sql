@@ -47,7 +47,6 @@ CREATE TABLE "users" (
 	"auth_user_id" text NOT NULL,
 	"email" varchar(255) NOT NULL,
 	"name" varchar(255),
-	"password_hash" text NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_auth_user_id_unique" UNIQUE("auth_user_id"),
 	CONSTRAINT "users_email_unique" UNIQUE("email")
