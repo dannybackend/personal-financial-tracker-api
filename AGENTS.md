@@ -102,3 +102,24 @@ When you complete a checkpoint or task
 Check off the corresponding item in docs/PROGRESS.md. If the work isn't
 listed, add it under the correct phase first. Follow-up work discovered along
 the way becomes a new unchecked item, not a silent omission.
+
+## When you introduce a backend concept for the first time
+
+This is a learning project. Keep `docs/LEARNING.md` as a concise chronological
+learning journal for backend concepts that appear in the codebase for the first
+time.
+
+Add a short entry when a task first introduces a concept such as migrations,
+foreign keys, indexes, transactions, middleware, auth/session handling, Zod
+validation, rate limiting, queues, caching, integration tests, OpenAPI, CI, or
+deployment.
+
+Use the format already shown in `docs/LEARNING.md`:
+
+- **Де:** file or folder where the concept appears
+- **Що це:** short plain-language explanation
+- **Навіщо в цьому проєкті:** project-specific reason
+- **Ключова думка:** one memorable takeaway
+
+Append new entries at the bottom of `docs/LEARNING.md`. Keep entries brief and
+do not duplicate concepts that are already explained there.

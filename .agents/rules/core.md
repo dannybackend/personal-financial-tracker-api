@@ -21,3 +21,8 @@ src/routes/     src/db/     src/middleware/     src/lib/     src/types/
 ## Scope
 - Tackle one endpoint or one module at a time.
 - After generating code, summarize what was done and flag any edge cases not yet handled.
+
+## Learning Journal
+- This is a learning project. When a backend concept appears in code for the first time, append a concise entry to `docs/LEARNING.md`.
+- Examples: migrations, foreign keys, indexes, transactions, middleware, auth/session handling, Zod validation, rate limiting, queues, caching, integration tests, OpenAPI, CI, deployment.
+- Use the existing `docs/LEARNING.md` format and append new entries at the bottom. Do not duplicate already explained concepts.

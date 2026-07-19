@@ -12,6 +12,8 @@
 - [x] Hono сервер запускається (`npm run dev`)
 - [x] `.cursor/rules/` (core.mdc, security.mdc) + `AGENTS.md` + `CONTRIBUTING.md`
 - [x] CodeRabbit підключено, `.coderabbit.yaml` налаштовано
+- [x] Онбординг для нового розробника (`docs/ONBOARDING.md`)
+- [x] Навчальний журнал бекенд-концепцій (`docs/LEARNING.md`)
 
 ## Фаза 1 — Тиждень 3-5: Проєкт 1 — Personal Financial Tracker API
 
