@@ -1,28 +1,12 @@
 ---
 trigger: always_on
-description: Core stack and TypeScript standards for every session
+description: Full project rules for AI agents — imports AGENTS.md (single source of truth)
 ---
 
 # Core
 
-## Stack
-Node.js 24+ · TypeScript 5+ (strict) · Hono · Drizzle ORM · PostgreSQL · Zod · Better Auth · Vitest · Redis · BullMQ · Scalar + OpenAPI
+This project's AI agent rules live entirely in `AGENTS.md` at the repo root.
+Imported in full below so Antigravity never drifts out of sync with Codex /
+VS Code / Claude Code / Cursor.
 
-## Structure
-```
-src/routes/     src/db/     src/middleware/     src/lib/     src/types/
-```
-
-## TypeScript
-- Strict mode always. No `any` — use `unknown` and narrow.
-- Named exports only. Explicit return types on exported functions.
-- One function = one responsibility. Descriptive names (`userId`, not `uid`).
-
-## Scope
-- Tackle one endpoint or one module at a time.
-- After generating code, summarize what was done and flag any edge cases not yet handled.
-
-## Learning Journal
-- This is a learning project. When a backend concept appears in code for the first time, append a concise entry to `docs/LEARNING.md`.
-- Examples: migrations, foreign keys, indexes, transactions, middleware, auth/session handling, Zod validation, rate limiting, queues, caching, integration tests, OpenAPI, CI, deployment.
-- Use the existing `docs/LEARNING.md` format and append new entries at the bottom. Do not duplicate already explained concepts.
+@../../AGENTS.md

@@ -1,5 +1,5 @@
 # Cursor
 
-Scoped rules live in `.cursor/rules/` (token-efficient — only relevant rules load per file).
+Rules live in `.cursor/rules/core.mdc` (always-on, imports `AGENTS.md` in full).
 
-Codex / VS Code: see `AGENTS.md`. Human workflow: see `CONTRIBUTING.md`.
+Codex / VS Code: see `AGENTS.md`. Claude Code: see `CLAUDE.md`. Human workflow: see `CONTRIBUTING.md`.
