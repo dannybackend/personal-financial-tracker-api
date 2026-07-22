@@ -10,7 +10,7 @@
 - [x] Docker Desktop (all-users install) + `docker-compose.yml` (PostgreSQL + Redis)
 - [x] Node.js 24, TypeScript 5 (strict mode), ESLint
 - [x] Hono сервер запускається (`npm run dev`)
-- [x] `.cursor/rules/` (core.mdc, security.mdc) + `AGENTS.md` + `CONTRIBUTING.md`
+- [x] AGENTS.md (SSOT) + CLAUDE.md, .cursor/rules/, .agents/rules/ (імпорт AGENTS.md) + CONTRIBUTING.md
 - [x] CodeRabbit підключено, `.coderabbit.yaml` налаштовано
 - [x] Онбординг для нового розробника (`docs/ONBOARDING.md`)
 - [x] Навчальний журнал бекенд-концепцій (`docs/LEARNING.md`)

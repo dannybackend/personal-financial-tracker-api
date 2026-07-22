@@ -1,8 +1,11 @@
 # Contributing Guide
 
 ## AI Agent Setup
-- **Cursor** — scoped rules in `.cursor/rules/` (minimal `.cursorrules` pointer in repo root)
-- **VS Code + Codex** — `AGENTS.md` in repo root
+- **Single source of truth** — all agent rules live in `AGENTS.md` at the repo root. Edit only there; every tool below imports it directly, nothing to hand-sync.
+- **VS Code + Codex** — reads `AGENTS.md` directly
+- **Claude Code** — `CLAUDE.md` in repo root, imports `AGENTS.md` in full
+- **Cursor** — `.cursor/rules/core.mdc` (always-on), imports `AGENTS.md` in full; minimal `.cursorrules` pointer in repo root for discoverability
+- **Google Antigravity** — `.agents/rules/core.md` (always-on), imports `AGENTS.md` in full
 - **Code standards** — defined in `AGENTS.md`; do not duplicate here
 
 ## Local Setup

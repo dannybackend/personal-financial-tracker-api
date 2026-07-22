@@ -1,8 +1,10 @@
-# Project Instructions for Codex
+# AI Agent Instructions
 
-> Single source of truth for AI agents (Codex / VS Code / Antigravity).
-> Cursor uses scoped rules in `.cursor/rules/` — keep both in sync when changing standards.
-> Antigravity uses scoped rules in `.agents/rules/` — keep both in sync when changing standards.
+> Single source of truth for AI coding agents in this project.
+> Claude Code (`CLAUDE.md`), Cursor (`.cursor/rules/core.mdc`) and Google
+> Antigravity (`.agents/rules/core.md`) import this file directly via each
+> tool's native `@file` syntax — edit only here, nothing else to keep in sync.
+> Codex / VS Code read this file directly.
 
 ## Stack
 
@@ -97,7 +99,7 @@ indexing, data types), append a new entry to docs/DECISIONS.md:
 
 Append only — never rewrite or delete existing entries.
 
-When you complete a checkpoint or task
+## When you complete a checkpoint or task
 
 Check off the corresponding item in docs/PROGRESS.md. If the work isn't
 listed, add it under the correct phase first. Follow-up work discovered along
