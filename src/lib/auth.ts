@@ -34,9 +34,11 @@ const env = envSchema.parse(process.env);
  * - Session: stored server-side; the client receives an HttpOnly cookie
  *   (`better-auth.session_token`) that is never accessible from JavaScript.
  * - `databaseHooks.user.create.after` creates the matching domain `users`
- *   row as soon as Better Auth creates an `auth_user`, so a registered
- *   account can never exist without a financial-tracker profile
- *   (see docs/DECISIONS.md).
+ *   row right after Better Auth creates an `auth_user`. This runs
+ *   post-commit, not atomically with it — a failed insert here leaves an
+ *   `auth_user` without a profile. Known, accepted, low-probability risk
+ *   (see docs/DECISIONS.md); no atomic alternative ships in our installed
+ *   better-auth version yet.
  * - Rate limiting: enabled explicitly (Better Auth only enables its default
  *   automatically in production) with stricter rules on sign-up/sign-in than
  *   the global default, per AGENTS.md's "rate limit auth endpoints" rule.
