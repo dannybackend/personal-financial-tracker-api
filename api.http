@@ -35,3 +35,14 @@ Content-Type: application/json
 
 ### Sanity check: a genuinely unmounted path should still 404 (mount is scoped, not catch-all)
 GET {{baseUrl}}/api/totally-made-up-path
+
+### Auth: sign-in (wrong password on purpose). Click "Send Request" 6x within
+### 60s — the first 5 should return 401, the 6th should return 429
+### (customRules rate limit on /sign-in/email, see docs/DECISIONS.md).
+POST {{baseUrl}}/api/auth/sign-in/email
+Content-Type: application/json
+
+{
+  "email": "ratelimit-test@example.com",
+  "password": "wrongpassword123"
+}
