@@ -3,6 +3,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { z } from 'zod';
 import { db } from '../db/db.js';
+import { users } from '../db/schema.js';
 import {
   authUser,
   authSession,
@@ -32,6 +33,12 @@ const env = envSchema.parse(process.env);
  *   enumeration (see docs/DECISIONS.md).
  * - Session: stored server-side; the client receives an HttpOnly cookie
  *   (`better-auth.session_token`) that is never accessible from JavaScript.
+ * - `databaseHooks.user.create.after` creates the matching domain `users`
+ *   row right after Better Auth creates an `auth_user`. This runs
+ *   post-commit, not atomically with it — a failed insert here leaves an
+ *   `auth_user` without a profile. Known, accepted, low-probability risk
+ *   (see docs/DECISIONS.md); no atomic alternative ships in our installed
+ *   better-auth version yet.
  * - Rate limiting: enabled explicitly (Better Auth only enables its default
  *   automatically in production) with stricter rules on sign-up/sign-in than
  *   the global default, per AGENTS.md's "rate limit auth endpoints" rule.
@@ -68,6 +75,20 @@ export const auth = betterAuth({
     // 422 for an already-registered email, letting an attacker probe which
     // emails exist. false makes the response identical either way.
     autoSignIn: false,
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await db.insert(users).values({
+            authUserId: user.id,
+            email: user.email,
+            name: user.name,
+          });
+        },
+      },
+    },
   },
 
   session: {
