@@ -132,6 +132,9 @@ Drizzle, але саме з'єднання з базою лишається ло
 docker exec -it personal-api-postgres psql -U personal_api -d personal_api
 ```
 
+(`personal_api`/`personal_api` — дефолти з `.env.example`; якщо у своєму `.env`
+змінював `POSTGRES_USER`/`POSTGRES_DB`, підставляй свої значення.)
+
 Всередині `psql`: `\dt` — список таблиць, `SELECT * FROM auth_user;` —
 подивитись дані, `\q` — вийти.
 
