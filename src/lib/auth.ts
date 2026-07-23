@@ -27,6 +27,9 @@ const env = envSchema.parse(process.env);
  * - Schema mapping: Better Auth's four core models are mapped to our prefixed
  *   `auth_*` tables so they don't collide with the financial-tracker tables.
  * - Auth provider: email + password (built-in).
+ * - Sign-up: `autoSignIn` disabled so the sign-up response is uniform
+ *   whether or not the email is already registered, preventing account
+ *   enumeration (see docs/DECISIONS.md).
  * - Session: stored server-side; the client receives an HttpOnly cookie
  *   (`better-auth.session_token`) that is never accessible from JavaScript.
  */
@@ -46,6 +49,10 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
+    // Prevents email enumeration: without this, sign-up returns a distinct
+    // 422 for an already-registered email, letting an attacker probe which
+    // emails exist. false makes the response identical either way.
+    autoSignIn: false,
   },
 
   session: {
