@@ -1,0 +1,37 @@
+### Personal Financial Tracker API — manual request collection
+### Requires the "REST Client" extension (VS Code/Cursor) or a JetBrains IDE's
+### built-in HTTP client. Run `npm run dev` first, then click "Send Request"
+### above any request below. New endpoints should get a request here as they
+### land, so this file stays a live, runnable map of the API surface.
+
+@baseUrl = http://localhost:3000
+
+### Health check — confirms the server is up
+GET {{baseUrl}}/
+
+### Auth: current session (expect 200 + null body when logged out)
+GET {{baseUrl}}/api/auth/get-session
+
+### Auth: register via Better Auth's own endpoint (autoSignIn: false — no session is created)
+POST {{baseUrl}}/api/auth/sign-up/email
+Content-Type: application/json
+
+{
+  "email": "manual-test@example.com",
+  "password": "testpassword123",
+  "name": "Manual Test"
+}
+
+### Auth: same email again — should return the same 200 shape (enumeration protection).
+### Check the DB directly (see docs/DECISIONS.md) to confirm no second row was created.
+POST {{baseUrl}}/api/auth/sign-up/email
+Content-Type: application/json
+
+{
+  "email": "manual-test@example.com",
+  "password": "testpassword123",
+  "name": "Manual Test"
+}
+
+### Sanity check: a genuinely unmounted path should still 404 (mount is scoped, not catch-all)
+GET {{baseUrl}}/api/totally-made-up-path

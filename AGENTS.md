@@ -105,6 +105,18 @@ Check off the corresponding item in docs/PROGRESS.md. If the work isn't
 listed, add it under the correct phase first. Follow-up work discovered along
 the way becomes a new unchecked item, not a silent omission.
 
+## When you add or change an API endpoint
+
+Add or update the matching request in `api.http` (method, path, example
+body) so it stays a runnable, current map of the API surface — not just a
+snapshot from whenever it was created.
+
+## When you add or change local dev workflow
+
+If you add a new required tool, script, or way to inspect local state (a
+new docker service, a new npm script, a new way to view the database),
+add it to docs/ONBOARDING.md so a fresh setup covers it.
+
 ## When you introduce a backend concept for the first time
 
 This is a learning project. Keep `docs/LEARNING.md` as a concise chronological

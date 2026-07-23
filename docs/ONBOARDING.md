@@ -100,6 +100,44 @@ curl http://localhost:3000/
 Hello Hono!
 ```
 
+## Переглянути дані в базі
+
+Найпростіший спосіб — **Drizzle Studio**. Вже входить у `drizzle-kit`
+(devDependency), не питає окремих кредів — читає той самий
+`drizzle.config.ts`, яким користуються міграції:
+
+```bash
+npm run db:studio
+```
+
+Відкриває `https://local.drizzle.studio` в браузері: список таблиць,
+перегляд і редагування рядків, довільні SQL-запити. UI віддається з хмари
+Drizzle, але саме з'єднання з базою лишається локальним.
+
+Якщо потрібен окремий клієнт (VS Code extension, TablePlus, DBeaver тощо),
+йому потрібні ті самі значення, що вже лежать у `.env`:
+
+| Поле | Значення |
+|---|---|
+| Host | `localhost` |
+| Port | `5433` (не стандартний `5432` — дивись `docker-compose.yml`) |
+| Database | значення `POSTGRES_DB` з `.env` |
+| User | значення `POSTGRES_USER` з `.env` |
+| Password | значення `POSTGRES_PASSWORD` з `.env` |
+| SSL | вимкнено (локальна розробка) |
+
+Швидка перевірка без жодного клієнта, напряму через контейнер:
+
+```bash
+docker exec -it personal-api-postgres psql -U personal_api -d personal_api
+```
+
+(`personal_api`/`personal_api` — дефолти з `.env.example`; якщо у своєму `.env`
+змінював `POSTGRES_USER`/`POSTGRES_DB`, підставляй свої значення.)
+
+Всередині `psql`: `\dt` — список таблиць, `SELECT * FROM auth_user;` —
+подивитись дані, `\q` — вийти.
+
 ## Корисні команди
 
 ```bash
