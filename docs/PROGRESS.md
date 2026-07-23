@@ -21,7 +21,7 @@
 - [x] Індекси на всіх foreign key колонках
 - [x] Перехід на UUID primary keys
 - [x] Better Auth — конфігурація, `auth_*` таблиці, HttpOnly cookie сесії
-- [ ] `onUserCreate` hook — авто-створення профілю в `users`
+- [x] `onUserCreate` hook — авто-створення профілю в `users`
 - [ ] Endpoint реєстрації `POST /api/auth/register` (201 успіх / 409 email існує)
 - [ ] Endpoint логіну
 - [ ] CRUD: accounts, categories, transactions, budgets

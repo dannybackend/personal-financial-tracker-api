@@ -98,6 +98,13 @@
 **Рішення:** `onUserCreate` hook в Better Auth автоматично створює запис в `users` одразу при реєстрації. Окремий endpoint (напр. `/api/profile/setup`) — опціонально, для локальної зручності, не є критичним шляхом.
 **Чому:** hook атомарний і надійний — неможливо "забути" викликати його з клієнта; уникає розсинхронізації коли є `auth_user` без відповідного профілю в `users`.
 
+### Реалізація hook: `databaseHooks.user.create.after`, без try/catch
+
+**Рішення:** `src/lib/auth.ts` — `databaseHooks.user.create.after` вставляє рядок в `users` (`authUserId`, `email`, `name` з об'єкта `user`, який хук отримує напряму). Без try/catch навколо insert — помилка має впасти голосно, а не проковтнутись мовчки.
+**Чому:** в Better Auth є відкриті issues на GitHub про FK constraint violations і timing-проблеми в `user.create.after` саме при **social login з DB-транзакціями** ([#7260](https://github.com/better-auth/better-auth/issues/7260), [#4614](https://github.com/better-auth/better-auth/issues/4614)). Перевірено наживо через `auth.api.signUpEmail()`: для email/password-флоу (наш поточний єдиний провайдер, `provider_id = credential`) insert відпрацював чисто, `users.auth_user_id` збігся з `auth_user.id` без жодної помилки — тригер тих issues (social login) у нас поки не застосовний.
+**Компроміс:** якщо colись додасться OAuth (Google/GitHub — див. запис про account linking в `docs/LEARNING.md`), цей hook треба перетестувати заново саме під тим сценарієм — гарантії "працює для credential" не переносяться автоматично на "працює для OAuth".
+**Альтернатива яку відкинули:** обгорнути insert в try/catch з логуванням, щоб уникнути краху sign-up при збої hook. Відкинули — це саме той сценарій розсинхронізації (`auth_user` без `users`), якого hook мав запобігти; тихий catch ховає проблему замість її вирішення.
+
 ---
 
 ## Відкладені рішення (заплановано на Фазу 2+)

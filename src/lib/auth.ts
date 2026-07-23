@@ -3,6 +3,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { z } from 'zod';
 import { db } from '../db/db.js';
+import { users } from '../db/schema.js';
 import {
   authUser,
   authSession,
@@ -29,6 +30,10 @@ const env = envSchema.parse(process.env);
  * - Auth provider: email + password (built-in).
  * - Session: stored server-side; the client receives an HttpOnly cookie
  *   (`better-auth.session_token`) that is never accessible from JavaScript.
+ * - `databaseHooks.user.create.after` creates the matching domain `users`
+ *   row as soon as Better Auth creates an `auth_user`, so a registered
+ *   account can never exist without a financial-tracker profile
+ *   (see docs/DECISIONS.md).
  */
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
@@ -46,6 +51,20 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await db.insert(users).values({
+            authUserId: user.id,
+            email: user.email,
+            name: user.name,
+          });
+        },
+      },
+    },
   },
 
   session: {
