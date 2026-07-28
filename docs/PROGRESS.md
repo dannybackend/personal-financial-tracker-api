@@ -23,7 +23,7 @@
 - [x] Better Auth — конфігурація, `auth_*` таблиці, HttpOnly cookie сесії
 - [x] `onUserCreate` hook — авто-створення профілю в `users`
 - [x] Реєстрація — через Better Auth (`/api/auth/sign-up/email`), без кастомного `/api/auth/register` (див. `docs/DECISIONS.md`, issue #8 закрито як not planned)
-- [ ] Endpoint логіну
+- [x] Endpoint логіну — через Better Auth (`/api/auth/sign-in/email`), без кастомного endpoint, симетрично з реєстрацією (див. `docs/DECISIONS.md`, issue #9)
 - [ ] CRUD: accounts, categories, transactions, budgets
 - [ ] Zod валідація на всіх endpoints
 - [ ] Інтеграційні тести (Vitest)

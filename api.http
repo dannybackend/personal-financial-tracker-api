@@ -46,3 +46,33 @@ Content-Type: application/json
   "email": "ratelimit-test@example.com",
   "password": "wrongpassword123"
 }
+
+### Auth: make sure the test user exists before signing in — safe to
+### re-run any time (duplicate sign-up returns the same 200 shape, see the
+### enumeration-protection request above). Needed again any time
+### manual-test@example.com's auth_user row gets deleted by hand, e.g.
+### while cleaning up orphaned rows predating the onUserCreate hook.
+POST {{baseUrl}}/api/auth/sign-up/email
+Content-Type: application/json
+
+{
+  "email": "manual-test@example.com",
+  "password": "testpassword123",
+  "name": "Manual Test"
+}
+
+### Auth: sign-in with correct credentials — expect 200 + Set-Cookie
+### (better-auth.session_token, HttpOnly; see issue #9 and docs/DECISIONS.md
+### — "Логін напряму через /api/auth/sign-in/email, без кастомної обгортки").
+POST {{baseUrl}}/api/auth/sign-in/email
+Content-Type: application/json
+
+{
+  "email": "manual-test@example.com",
+  "password": "testpassword123"
+}
+
+### Auth: confirm the session cookie from the request above actually works.
+### REST Client / JetBrains HTTP client keep cookies per file, so sending
+### this right after should return the session, not null.
+GET {{baseUrl}}/api/auth/get-session
