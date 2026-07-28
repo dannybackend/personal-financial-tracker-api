@@ -22,7 +22,7 @@
 - [x] Перехід на UUID primary keys
 - [x] Better Auth — конфігурація, `auth_*` таблиці, HttpOnly cookie сесії
 - [x] `onUserCreate` hook — авто-створення профілю в `users`
-- [ ] Endpoint реєстрації `POST /api/auth/register` (201 успіх / 409 email існує)
+- [x] Реєстрація — через Better Auth (`/api/auth/sign-up/email`), без кастомного `/api/auth/register` (див. `docs/DECISIONS.md`, issue #8 закрито як not planned)
 - [ ] Endpoint логіну
 - [ ] CRUD: accounts, categories, transactions, budgets
 - [ ] Zod валідація на всіх endpoints
@@ -43,4 +43,6 @@
 
 ## Наступний крок
 
-→ `onUserCreate` hook → endpoint реєстрації → endpoint логіну → перший CRUD endpoint
+Живий беклог і статус — GitHub Issues + Milestones цього репозиторію, не
+тут (див. `AGENTS.md` → "Task tracking"). Ця секція раніше дублювала той
+самий список окремим, застарілим рядком — прибрано, щоб не розходилось.

@@ -84,6 +84,21 @@ Every route handler must follow this order:
 - Tackle one endpoint or one module at a time
 - After generating code, summarize what was done and flag any edge cases not yet handled
 
+## Task tracking
+
+Work is tracked as GitHub Issues on this repo, grouped into milestones per
+feature area. Before starting a task, check the issue for current,
+authoritative scope (`gh issue view <number>`) — descriptions may be edited
+after creation as understanding changes.
+
+- Branch naming: `{issue-number}-{slugified-issue-title}` (matches GitHub's
+  own "Create a branch" button on an issue)
+- PR description includes `Closes #<number>` so merging auto-closes the issue
+- Status board: https://github.com/users/Danny-Lenko/projects/1 (owned by
+  the maintainer's personal account, not the repo — won't appear in the
+  repo's own Projects tab; `gh project item-list 1 --owner Danny-Lenko`
+  works from any session)
+
 ## When you make an architectural decision
 
 Any time you implement something involving a trade-off between viable

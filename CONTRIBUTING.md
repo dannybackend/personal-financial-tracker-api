@@ -31,8 +31,8 @@ npm run dev
 ## Git Workflow
 - `main` — protected, production-ready only
 - `dev` — integration branch
-- Feature branches: `feat/short-description`
-- Bug branches: `fix/short-description`
+- Branch naming: `{issue-number}-{slugified-issue-title}` (GitHub's own
+  "Create a branch" button on an issue generates this automatically)
 
 One feature = one PR. Even if you are working alone.
 
