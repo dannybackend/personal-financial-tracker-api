@@ -26,7 +26,7 @@
 - [x] Endpoint логіну — через Better Auth (`/api/auth/sign-in/email`), без кастомного endpoint, симетрично з реєстрацією (див. `docs/DECISIONS.md`, issue #9)
 - [ ] CRUD: accounts, categories, transactions, budgets
 - [ ] Zod валідація на всіх endpoints
-- [ ] Інтеграційні тести (Vitest)
+- [x] Інтеграційні тести (Vitest) — окрема тестова база, `src/app.test.ts` покриває реєстрацію/логін (issue #10); CRUD-ендпоінти отримають власні тести по мірі реалізації (#12, #14, #17, #19)
 - [ ] Rate limiting через Redis
 - [ ] Пагінація і фільтрація list endpoints
 - [ ] OpenAPI документація (Scalar)
