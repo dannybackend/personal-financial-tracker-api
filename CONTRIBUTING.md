@@ -30,7 +30,6 @@ npm run dev
 
 ## Git Workflow
 - `main` — protected, production-ready only
-- `dev` — integration branch
 - Branch naming: `{issue-number}-{slugified-issue-title}` (GitHub's own
   "Create a branch" button on an issue generates this automatically)
 
@@ -40,6 +39,7 @@ One feature = one PR. Even if you are working alone.
 - Every PR goes through CodeRabbit review
 - Read every CodeRabbit comment — either fix it or leave a comment explaining why you disagree
 - Do not dismiss comments silently
+- A feature and its integration-test issue ship in the same PR (e.g. #11 and #12) — a feature PR shouldn't merge before its test coverage lands, per `AGENTS.md`'s "every new endpoint needs a test" rule
 
 ## Before Every Commit
 ```bash
@@ -64,4 +64,4 @@ Significant decisions (schema design, auth approach, caching strategy) must be d
 ## Testing
 - Integration tests over unit tests for route handlers
 - Tests live next to the code: `src/routes/users.test.ts`
-- Run tests in CI on every PR (GitHub Actions)
+- CI (GitHub Actions) running tests on every PR is planned, not wired up yet — see issue #22. Until then, run `npm test` locally before every PR.
