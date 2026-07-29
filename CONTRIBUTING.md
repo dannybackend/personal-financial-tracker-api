@@ -64,4 +64,4 @@ Significant decisions (schema design, auth approach, caching strategy) must be d
 ## Testing
 - Integration tests over unit tests for route handlers
 - Tests live next to the code: `src/routes/users.test.ts`
-- CI (GitHub Actions) running tests on every PR is planned, not wired up yet — see issue #22. Until then, run `npm test` locally before every PR.
+- CI (GitHub Actions) running tests on every PR is planned, not wired up yet — see issue #22. Until then, run `npm run lint`, `npm run typecheck`, and `npm test` locally before every PR (see "Before Every Commit" above).

@@ -36,17 +36,6 @@ Content-Type: application/json
 ### Sanity check: a genuinely unmounted path should still 404 (mount is scoped, not catch-all)
 GET {{baseUrl}}/api/totally-made-up-path
 
-### Auth: sign-in (wrong password on purpose). Click "Send Request" 6x within
-### 60s — the first 5 should return 401, the 6th should return 429
-### (customRules rate limit on /sign-in/email, see docs/DECISIONS.md).
-POST {{baseUrl}}/api/auth/sign-in/email
-Content-Type: application/json
-
-{
-  "email": "ratelimit-test@example.com",
-  "password": "wrongpassword123"
-}
-
 ### Auth: make sure the test user exists before signing in — safe to
 ### re-run any time (duplicate sign-up returns the same 200 shape, see the
 ### enumeration-protection request above). Needed again any time
@@ -64,6 +53,9 @@ Content-Type: application/json
 ### Auth: sign-in with correct credentials — expect 200 + Set-Cookie
 ### (better-auth.session_token, HttpOnly; see issue #9 and docs/DECISIONS.md
 ### — "Логін напряму через /api/auth/sign-in/email, без кастомної обгортки").
+### Run this BEFORE the rate-limit scenario below, not after: rate limiting
+### on /sign-in/email is scoped per path, not per email, so 6 wrong-password
+### attempts eat this request's quota too and it'll get a 429 instead of 200.
 POST {{baseUrl}}/api/auth/sign-in/email
 Content-Type: application/json
 
@@ -76,3 +68,16 @@ Content-Type: application/json
 ### REST Client / JetBrains HTTP client keep cookies per file, so sending
 ### this right after should return the session, not null.
 GET {{baseUrl}}/api/auth/get-session
+
+### Auth: sign-in (wrong password on purpose). Click "Send Request" 6x within
+### 60s — the first 5 should return 401, the 6th should return 429
+### (customRules rate limit on /sign-in/email, see docs/DECISIONS.md). Run
+### this LAST — it shares its rate-limit bucket with the successful sign-in
+### above, so running it first would leave that request rate-limited too.
+POST {{baseUrl}}/api/auth/sign-in/email
+Content-Type: application/json
+
+{
+  "email": "ratelimit-test@example.com",
+  "password": "wrongpassword123"
+}
