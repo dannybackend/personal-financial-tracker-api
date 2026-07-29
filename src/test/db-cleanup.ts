@@ -1,6 +1,6 @@
 import { afterEach } from 'vitest';
-import { sql } from 'drizzle-orm';
 import { db } from '../db/db.js';
+import { truncateAllTablesSql } from './truncate-all.js';
 
 /**
  * Truncates every app + Better Auth table after each test, so tests never
@@ -8,10 +8,5 @@ import { db } from '../db/db.js';
  * runs against TEST_DATABASE_URL (see env-setup.ts, which runs first).
  */
 afterEach(async () => {
-  await db.execute(sql`
-    TRUNCATE TABLE
-      auth_verification, auth_account, auth_session, auth_user,
-      budgets, transactions, categories, accounts, users
-    CASCADE
-  `);
+  await db.execute(truncateAllTablesSql);
 });

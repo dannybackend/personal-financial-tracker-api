@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import { truncateAllTablesSql } from './truncate-all.js';
 
 /**
  * Creates the test database if it doesn't exist yet. docker/init-test-db.sh
@@ -27,7 +28,12 @@ async function ensureDatabaseExists(testDatabaseUrl: string): Promise<void> {
 
 /**
  * Runs once before the whole test run (not per test file): makes sure
- * TEST_DATABASE_URL's database exists, then applies pending migrations to it.
+ * TEST_DATABASE_URL's database exists, applies pending migrations, then
+ * truncates every table. The truncate here (not just db-cleanup.ts's
+ * afterEach) matters because afterEach only cleans up AFTER a test - if a
+ * previous run was killed mid-test (Ctrl+C, crash) before its afterEach
+ * could fire, leftover data would otherwise still be there when this run's
+ * first test starts.
  */
 export async function setup(): Promise<void> {
   config();
@@ -41,7 +47,9 @@ export async function setup(): Promise<void> {
 
   const client = postgres(testDatabaseUrl, { max: 1 });
   try {
-    await migrate(drizzle(client), { migrationsFolder: './src/db/migrations' });
+    const testDb = drizzle(client);
+    await migrate(testDb, { migrationsFolder: './src/db/migrations' });
+    await testDb.execute(truncateAllTablesSql);
   } finally {
     await client.end();
   }

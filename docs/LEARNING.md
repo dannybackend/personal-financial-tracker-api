@@ -149,7 +149,7 @@
 **Де:** `src/app.test.ts`, `vitest.config.ts`, `src/test/env-setup.ts`, `src/test/db-cleanup.ts`, `src/test/global-setup.ts`, `docker/init-test-db.sh`
 **Що це:** інтеграційний тест перевіряє поведінку через реальний виклик (тут — `app.request()` напряму до Hono routes, без мережевого порту), проходячи через справжню базу даних, а не мок.
 
-`personal_api_test` — не окремий контейнер, а другий, повністю ізольований набір таблиць всередині ТОГО САМОГО Postgres-сервера (`personal-api-postgres`), поруч із `personal_api` (dev). Як два різні Excel-файли, відкриті в одній програмі Excel: той самий процес, дані повністю окремі.
+`personal_api_test` — не окремий контейнер, а окрема, повністю ізольована база даних всередині ТОГО САМОГО Postgres-сервера (`personal-api-postgres`), поруч із `personal_api` (dev). Як два різні Excel-файли, відкриті в одній програмі Excel: той самий процес, дані повністю окремі.
 
 Життєвий цикл:
 
@@ -160,13 +160,17 @@
 
 НА КОЖЕН npm test:
   1. globalSetup (один раз на весь прогін):
-     з'єднується з personal_api_test, проганяє міграції (створює таблиці)
+     з'єднується з personal_api_test (створює її, якщо ще нема),
+     проганяє міграції, потім TRUNCATE усіх таблиць — гарантує чистий
+     старт, навіть якщо попередній прогін перервався (Ctrl+C, крах) до
+     того, як його afterEach встиг спрацювати
 
   2. setupFiles, для кожного тестового файлу, СУВОРО по черзі:
      a. env-setup.ts:  process.env.DATABASE_URL = TEST_DATABASE_URL
         (з цього моменту db.ts/auth.ts підключаються до personal_api_test,
          той самий код, інша ціль)
-     b. db-cleanup.ts: реєструє afterEach-гачок (TRUNCATE ... CASCADE)
+     b. db-cleanup.ts: реєструє afterEach-гачок (той самий TRUNCATE,
+        зі спільного src/test/truncate-all.ts)
 
   3. для кожного it(...):
      тест реально пише в personal_api_test через app.request()
