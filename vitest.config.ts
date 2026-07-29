@@ -6,5 +6,6 @@ export default defineConfig({
     environment: 'node',
     globalSetup: './src/test/global-setup.ts',
     setupFiles: ['./src/test/env-setup.ts', './src/test/db-cleanup.ts'],
+    sequence: { setupFiles: 'list' },
   },
 });

@@ -1,11 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
+import { z } from 'zod';
 import { app } from './app.js';
 import { db } from './db/db.js';
 import { users } from './db/schema.js';
+import { authUser } from './db/auth-schema.js';
 
 const REGISTER_URL = 'http://localhost/api/auth/sign-up/email';
 const LOGIN_URL = 'http://localhost/api/auth/sign-in/email';
+
+const signUpResponseSchema = z.object({
+  token: z.string().nullable(),
+  user: z.object({ email: z.string() }),
+});
+
+const sessionResponseSchema = z.object({
+  user: z.object({ email: z.string() }),
+});
 
 function jsonRequest(url: string, body: unknown): Request {
   return new Request(url, {
@@ -24,7 +35,7 @@ describe('POST /api/auth/sign-up/email', () => {
     }));
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = signUpResponseSchema.parse(await res.json());
     expect(body.token).toBeNull();
     expect(body.user.email).toBe('register-test@example.com');
   });
@@ -42,18 +53,27 @@ describe('POST /api/auth/sign-up/email', () => {
     expect(rows[0]?.name).toBe('Hook Check');
   });
 
-  it('returns the same 200 shape for a duplicate email, without creating a second row', async () => {
+  it('returns the same success shape for a duplicate email, without creating a second row', async () => {
     const email = 'duplicate-test@example.com';
     const payload = { email, password: 'testpassword123', name: 'Duplicate Test' };
 
     const first = await app.request(jsonRequest(REGISTER_URL, payload));
     expect(first.status).toBe(200);
+    const firstBody = signUpResponseSchema.parse(await first.json());
+    expect(firstBody.token).toBeNull();
+    expect(firstBody.user.email).toBe(email);
 
     const second = await app.request(jsonRequest(REGISTER_URL, payload));
     expect(second.status).toBe(200);
+    const secondBody = signUpResponseSchema.parse(await second.json());
+    expect(secondBody.token).toBeNull();
+    expect(secondBody.user.email).toBe(email);
 
-    const rows = await db.select().from(users).where(eq(users.email, email));
-    expect(rows).toHaveLength(1);
+    const authRows = await db.select().from(authUser).where(eq(authUser.email, email));
+    expect(authRows).toHaveLength(1);
+
+    const profileRows = await db.select().from(users).where(eq(users.email, email));
+    expect(profileRows).toHaveLength(1);
   });
 });
 
@@ -78,7 +98,7 @@ describe('POST /api/auth/sign-in/email', () => {
       headers: { Cookie: cookieHeader },
     }));
 
-    const session = await sessionRes.json();
+    const session = sessionResponseSchema.parse(await sessionRes.json());
     expect(session.user.email).toBe(email);
   });
 
