@@ -105,9 +105,11 @@ after creation as understanding changes.
   instead (e.g. `fix/docs-consistency-cleanup`) — same convention already
   used by past PRs like `feat/document-task-tracking-workflow`.
 - PR description includes `Closes #<number>` so merging auto-closes the
-  issue. This only works from the PR description itself or a commit message
-  on the default branch — never from a PR comment, GitHub does not parse
-  comments for closing keywords.
+  issue. This only works from the PR description itself, or from a commit
+  message once that commit is merged into the default branch (the commit
+  doesn't need to be made directly on the default branch, just end up
+  there) — never from a PR comment, GitHub does not parse comments for
+  closing keywords.
 - Labels: `type:feature`, `type:testing`, `type:infra`, `type:docs` — pick
   the one matching the primary nature of the work.
 - Shared or cross-cutting work needed by multiple other issues (e.g. a
