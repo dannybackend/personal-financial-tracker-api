@@ -100,8 +100,27 @@ authoritative scope (`gh issue view <number>`) — descriptions may be edited
 after creation as understanding changes.
 
 - Branch naming: `{issue-number}-{slugified-issue-title}` (matches GitHub's
-  own "Create a branch" button on an issue)
-- PR description includes `Closes #<number>` so merging auto-closes the issue
+  own "Create a branch" button on an issue). Work not tied to a single
+  numbered issue (cross-cutting docs/process cleanup) uses `{type}/{slug}`
+  instead (e.g. `fix/docs-consistency-cleanup`) — same convention already
+  used by past PRs like `feat/document-task-tracking-workflow`.
+- PR description includes `Closes #<number>` so merging auto-closes the
+  issue. This only works from the PR description itself, or from a commit
+  message once that commit is merged into the default branch (the commit
+  doesn't need to be made directly on the default branch, just end up
+  there) — never from a PR comment, GitHub does not parse comments for
+  closing keywords.
+- Labels: `type:feature`, `type:testing`, `type:infra`, `type:docs` — pick
+  the one matching the primary nature of the work.
+- Shared or cross-cutting work needed by multiple other issues (e.g. a
+  middleware several endpoints depend on) gets its own tracked issue, filed
+  under the first milestone that needs it — don't build it silently inside
+  whichever issue happens to need it first.
+- Hard prerequisites between issues must be linked structurally, not just
+  mentioned in prose: `gh issue edit <blocked> --add-blocked-by <blocker>`.
+  A developer opening the blocked issue cold must see the dependency in
+  GitHub's own UI, not have to infer it from a conversation they weren't
+  part of.
 - Status board: https://github.com/users/Danny-Lenko/projects/1 (owned by
   the maintainer's personal account, not the repo — won't appear in the
   repo's own Projects tab; `gh project item-list 1 --owner Danny-Lenko`
