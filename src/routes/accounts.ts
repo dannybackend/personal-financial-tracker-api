@@ -4,7 +4,9 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '../db/db.js';
 import { accounts } from '../db/schema.js';
 import { requireAuth, type AuthEnv } from '../middleware/auth.js';
-import { parseBody } from '../lib/validation.js';
+import { parseBody, parseParam } from '../lib/validation.js';
+
+const idParamSchema = z.uuid();
 
 const createAccountSchema = z.object({
   name: z.string().min(1).max(255),
@@ -43,8 +45,13 @@ accountsRoute.get('/', async (c) => {
 });
 
 accountsRoute.get('/:id', async (c) => {
+  const parsedId = parseParam(c, idParamSchema, c.req.param('id'));
+  if ('error' in parsedId) {
+    return parsedId.error;
+  }
+
   const user = c.get('user');
-  const id = c.req.param('id');
+  const id = parsedId.data;
 
   const [account] = await db
     .select()
@@ -59,13 +66,18 @@ accountsRoute.get('/:id', async (c) => {
 });
 
 accountsRoute.patch('/:id', async (c) => {
+  const parsedId = parseParam(c, idParamSchema, c.req.param('id'));
+  if ('error' in parsedId) {
+    return parsedId.error;
+  }
+
   const parsed = await parseBody(c, updateAccountSchema);
   if ('error' in parsed) {
     return parsed.error;
   }
 
   const user = c.get('user');
-  const id = c.req.param('id');
+  const id = parsedId.data;
 
   const [updated] = await db
     .update(accounts)
@@ -81,8 +93,13 @@ accountsRoute.patch('/:id', async (c) => {
 });
 
 accountsRoute.delete('/:id', async (c) => {
+  const parsedId = parseParam(c, idParamSchema, c.req.param('id'));
+  if ('error' in parsedId) {
+    return parsedId.error;
+  }
+
   const user = c.get('user');
-  const id = c.req.param('id');
+  const id = parsedId.data;
 
   const [deleted] = await db
     .delete(accounts)

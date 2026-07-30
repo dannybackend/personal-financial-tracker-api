@@ -1,5 +1,5 @@
 import type { Context } from 'hono';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 /**
  * Parses a request's JSON body against a Zod schema.
@@ -21,7 +21,25 @@ export async function parseBody<T extends z.ZodType>(
 
   const result = schema.safeParse(body);
   if (!result.success) {
-    return { error: c.json({ error: 'Validation failed', details: result.error.flatten() }, 422) };
+    return { error: c.json({ error: 'Validation failed', details: z.treeifyError(result.error) }, 422) };
+  }
+
+  return { data: result.data };
+}
+
+/**
+ * Validates a route param (e.g. `:id`) against a Zod schema before it
+ * reaches a query - an invalid UUID passed straight to a `uuid` column
+ * comparison fails as a raw DB error (500), not a clean 422.
+ */
+export function parseParam<T extends z.ZodType>(
+  c: Context,
+  schema: T,
+  value: string,
+): { data: z.infer<T> } | { error: Response } {
+  const result = schema.safeParse(value);
+  if (!result.success) {
+    return { error: c.json({ error: 'Validation failed', details: z.treeifyError(result.error) }, 422) };
   }
 
   return { data: result.data };

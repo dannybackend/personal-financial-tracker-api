@@ -128,6 +128,14 @@ describe('GET /accounts/:id', () => {
 
     expect(res.status).toBe(404);
   });
+
+  it('returns 422, not 500, for an id that is not a valid UUID', async () => {
+    const cookie = await registerAndLogin('accounts-get-invalid-id@example.com');
+
+    const res = await app.request(authedRequest('GET', `${BASE_URL}/not-a-uuid`, cookie));
+
+    expect(res.status).toBe(422);
+  });
 });
 
 describe('PATCH /accounts/:id', () => {
@@ -167,6 +175,14 @@ describe('PATCH /accounts/:id', () => {
 
     expect(res.status).toBe(422);
   });
+
+  it('returns 422, not 500, for an id that is not a valid UUID', async () => {
+    const cookie = await registerAndLogin('accounts-patch-invalid-id@example.com');
+
+    const res = await app.request(authedRequest('PATCH', `${BASE_URL}/not-a-uuid`, cookie, { name: 'x' }));
+
+    expect(res.status).toBe(422);
+  });
 });
 
 describe('DELETE /accounts/:id', () => {
@@ -195,5 +211,13 @@ describe('DELETE /accounts/:id', () => {
 
     const getRes = await app.request(authedRequest('GET', `${BASE_URL}/${created.id}`, ownerCookie));
     expect(getRes.status).toBe(200);
+  });
+
+  it('returns 422, not 500, for an id that is not a valid UUID', async () => {
+    const cookie = await registerAndLogin('accounts-delete-invalid-id@example.com');
+
+    const res = await app.request(authedRequest('DELETE', `${BASE_URL}/not-a-uuid`, cookie));
+
+    expect(res.status).toBe(422);
   });
 });
