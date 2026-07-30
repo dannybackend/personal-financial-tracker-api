@@ -39,6 +39,14 @@ DATABASE_URL=postgresql://personal_api:personal_api_password@localhost:5433/pers
 
 BETTER_AUTH_SECRET=replace_with_at_least_32_random_characters
 BETTER_AUTH_URL=http://localhost:3000
+
+TEST_DATABASE_URL=postgresql://personal_api:personal_api_password@localhost:5433/personal_api_test
+```
+
+`TEST_DATABASE_URL` — окрема, одноразова база для `npm test` (Vitest очищає її таблиці після кожного тесту). Створюється автоматично при першому `docker compose up -d` на чистому томі (`docker/init-test-db.sh`); якщо база вже піднімалась раніше без цього скрипта, створи її вручну один раз:
+
+```bash
+docker exec -it personal-api-postgres psql -U personal_api -d personal_api -c "CREATE DATABASE personal_api_test;"
 ```
 
 Згенерувати сильніший `BETTER_AUTH_SECRET` можна однією з команд:
@@ -178,10 +186,11 @@ docker compose down -v
 - bootstrap Hono-сервера
 - підключення PostgreSQL через Drizzle
 - Drizzle-схема і початкова міграція
-- конфігурація Better Auth і таблиці `auth_*`
+- конфігурація Better Auth і таблиці `auth_*`; реєстрація і логін працюють через змонтовані Better Auth ендпоінти, без кастомних `/api/auth/register`/`/api/auth/login` (див. `docs/DECISIONS.md`)
 - Docker Compose для PostgreSQL і Redis
+- Інтеграційні тести (Vitest) на потік реєстрації/логіну, проти окремої тестової бази (`src/app.test.ts`)
 
-Ще не реалізовані бізнесові endpoints для реєстрації, логіну, accounts, categories, transactions або budgets. Актуальний статус дивись у `docs/PROGRESS.md`.
+Ще не реалізовані бізнесові endpoints для accounts, categories, transactions або budgets. Актуальний статус дивись у `docs/PROGRESS.md`.
 
 ## Troubleshooting
 
