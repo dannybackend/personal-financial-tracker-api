@@ -1,8 +1,44 @@
 import { config } from 'dotenv';
+import { z } from 'zod';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { truncateAllTablesSql } from './truncate-all.js';
+
+const testDatabaseUrlSchema = z.string().regex(
+  /^postgres(ql)?:\/\//,
+  'TEST_DATABASE_URL must be a postgres:// or postgresql:// URL',
+);
+
+const databaseNameSchema = z.string().regex(
+  /^[A-Za-z_][A-Za-z0-9_]*$/,
+  'database name must start with a letter or underscore',
+);
+
+/**
+ * Refuses to continue if TEST_DATABASE_URL resolves to the same database as
+ * DATABASE_URL - e.g. a copy-paste mistake in .env - since everything below
+ * this point runs migrations and TRUNCATE ... CASCADE against it.
+ */
+function assertNotDevDatabase(testDatabaseUrl: string): void {
+  const devDatabaseUrl = process.env.DATABASE_URL;
+  if (!devDatabaseUrl) {
+    return;
+  }
+
+  const test = new URL(testDatabaseUrl);
+  const dev = new URL(devDatabaseUrl);
+
+  const sameTarget = test.hostname === dev.hostname
+    && (test.port || '5432') === (dev.port || '5432')
+    && test.pathname === dev.pathname;
+
+  if (sameTarget) {
+    throw new Error(
+      'TEST_DATABASE_URL points at the same database as DATABASE_URL - refusing to migrate/truncate it. Check .env for a copy-paste mistake.',
+    );
+  }
+}
 
 /**
  * Creates the test database if it doesn't exist yet. docker/init-test-db.sh
@@ -10,7 +46,7 @@ import { truncateAllTablesSql } from './truncate-all.js';
  * (e.g. one created before that script existed) needs this fallback.
  */
 async function ensureDatabaseExists(testDatabaseUrl: string): Promise<void> {
-  const testDbName = new URL(testDatabaseUrl).pathname.slice(1);
+  const testDbName = databaseNameSchema.parse(new URL(testDatabaseUrl).pathname.slice(1));
 
   const adminUrl = new URL(testDatabaseUrl);
   adminUrl.pathname = '/postgres';
@@ -19,7 +55,7 @@ async function ensureDatabaseExists(testDatabaseUrl: string): Promise<void> {
   try {
     const rows = await adminClient`SELECT 1 FROM pg_database WHERE datname = ${testDbName}`;
     if (rows.length === 0) {
-      await adminClient.unsafe(`CREATE DATABASE "${testDbName}"`);
+      await adminClient`CREATE DATABASE ${adminClient(testDbName)}`;
     }
   } finally {
     await adminClient.end();
@@ -38,11 +74,13 @@ async function ensureDatabaseExists(testDatabaseUrl: string): Promise<void> {
 export async function setup(): Promise<void> {
   config();
 
-  const testDatabaseUrl = process.env.TEST_DATABASE_URL;
-  if (!testDatabaseUrl) {
+  const rawTestDatabaseUrl = process.env.TEST_DATABASE_URL;
+  if (!rawTestDatabaseUrl) {
     throw new Error('TEST_DATABASE_URL must be set (see .env.example) to run integration tests');
   }
+  const testDatabaseUrl = testDatabaseUrlSchema.parse(rawTestDatabaseUrl);
 
+  assertNotDevDatabase(testDatabaseUrl);
   await ensureDatabaseExists(testDatabaseUrl);
 
   const client = postgres(testDatabaseUrl, { max: 1 });

@@ -15,6 +15,7 @@ const signUpResponseSchema = z.object({
 });
 
 const sessionResponseSchema = z.object({
+  session: z.object({ id: z.string() }),
   user: z.object({ email: z.string() }),
 });
 
@@ -99,6 +100,7 @@ describe('POST /api/auth/sign-in/email', () => {
     }));
 
     const session = sessionResponseSchema.parse(await sessionRes.json());
+    expect(session.session.id).toBeTruthy();
     expect(session.user.email).toBe(email);
   });
 
