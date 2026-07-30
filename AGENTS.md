@@ -79,6 +79,14 @@ Every route handler must follow this order:
 - Run `npm run typecheck`
 - Run `npm test`
 
+## After Opening a PR
+
+Once CodeRabbit reviews the PR, follow CONTRIBUTING.md's PR Rules: read
+every comment, fix it or reply explaining why not. Do not leave comments
+unaddressed even when the underlying code gets fixed anyway — the
+explanation is part of the record, and CodeRabbit uses it to improve
+future reviews on this repo.
+
 ## Task Scope
 
 - Tackle one endpoint or one module at a time
@@ -98,6 +106,17 @@ after creation as understanding changes.
   the maintainer's personal account, not the repo — won't appear in the
   repo's own Projects tab; `gh project item-list 1 --owner Danny-Lenko`
   works from any session)
+
+## Commit discipline
+
+Writing code and committing/pushing it are separate steps, each needing
+its own approval. After implementing a change, stop, summarize what
+changed, and wait — "implement X" is not itself approval to commit.
+
+Bundling is fine when the change was already discussed in this
+conversation and is small (e.g. applying a single review comment) — "yes,
+go ahead" can cover both the fix and the commit then. For anything larger
+or new, get explicit confirmation before committing.
 
 ## When you make an architectural decision
 
