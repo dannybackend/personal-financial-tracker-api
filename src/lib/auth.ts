@@ -13,8 +13,7 @@ import {
 
 const envSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32, 'BETTER_AUTH_SECRET must be at least 32 characters'),
-  BETTER_AUTH_URL: z.string()
-    .url('BETTER_AUTH_URL must be a valid URL')
+  BETTER_AUTH_URL: z.url('BETTER_AUTH_URL must be a valid URL')
     .refine((url) => !url.endsWith('/'), 'BETTER_AUTH_URL must not end with a trailing slash'),
 });
 
@@ -44,13 +43,16 @@ const env = envSchema.parse(process.env);
  *   the global default, per AGENTS.md's "rate limit auth endpoints" rule.
  *   In-memory storage is fine for the current single-instance deployment;
  *   revisit before running multiple replicas (see docs/DECISIONS.md).
+ *   Disabled under `NODE_ENV=test`: integration tests register/log in a new
+ *   user per test case by design (see docs/DECISIONS.md) and would blow
+ *   through the 5-per-60s sign-in limit almost immediately otherwise.
  */
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
 
   rateLimit: {
-    enabled: true,
+    enabled: process.env.NODE_ENV !== 'test',
     window: 60,
     max: 100,
     customRules: {

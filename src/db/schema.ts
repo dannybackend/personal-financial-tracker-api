@@ -35,6 +35,12 @@ export const accounts = pgTable('accounts', {
   index('accounts_user_id_idx').on(table.userId),
 ]);
 
+/** Domain user profile row (`users` table) - not the Better Auth user. */
+export type User = typeof users.$inferSelect;
+
+/** A single financial account row. */
+export type Account = typeof accounts.$inferSelect;
+
 export const categories = pgTable('categories', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id')

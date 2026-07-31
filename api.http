@@ -76,3 +76,30 @@ Content-Type: application/json
 ### REST Client / JetBrains HTTP client keep cookies per file, so sending
 ### this right after should return the session, not null.
 GET {{baseUrl}}/api/auth/get-session
+
+### Accounts: create (requires the session cookie from sign-in above)
+POST {{baseUrl}}/accounts
+Content-Type: application/json
+
+{
+  "name": "Main Card",
+  "type": "card",
+  "currency": "USD"
+}
+
+### Accounts: list all accounts belonging to the authenticated user
+GET {{baseUrl}}/accounts
+
+### Accounts: get one by id — replace with a real id from the create response above
+GET {{baseUrl}}/accounts/00000000-0000-0000-0000-000000000000
+
+### Accounts: update — replace with a real id
+PATCH {{baseUrl}}/accounts/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "name": "Renamed Card"
+}
+
+### Accounts: delete — replace with a real id (expect 204, no body)
+DELETE {{baseUrl}}/accounts/e691a354-7e82-4e01-9baf-6c96e0119cb5

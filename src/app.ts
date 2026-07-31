@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { auth } from './lib/auth.js';
+import { accountsRoute } from './routes/accounts.js';
 
 /**
  * The Hono application instance, without the HTTP server attached.
@@ -13,3 +14,5 @@ app.get('/', (c) => {
 });
 
 app.on(['POST', 'GET'], '/api/auth/*', (c) => auth.handler(c.req.raw));
+
+app.route('/accounts', accountsRoute);
