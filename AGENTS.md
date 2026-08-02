@@ -39,16 +39,33 @@ src/
 - One function = one responsibility
 - Descriptive names: `userId` not `uid`, `getUserById` not `getUser`
 
+## API Conventions
+
+`docs/API-CONVENTIONS.md` holds the binding cross-cutting contract every
+endpoint obeys: status codes, error shape, ownership checks, money and currency
+representation, date types, pagination, soft delete, transfers. Read it before
+writing or changing a handler — it is what keeps modules agreeing with each
+other instead of each inventing its own shape.
+
+Changing a rule there is an architectural decision: append to
+`docs/DECISIONS.md` first, then update the conventions file.
+
 ## Handler Pattern
 
 Every route handler must follow this order:
 1. Validate input with Zod schema
-2. Business logic
-3. Typed response with correct HTTP status code
+2. Verify the authenticated user owns every entity referenced by an id in the
+   payload — a foreign key proves the row exists, not whose it is. Missing this
+   check is an IDOR that neither Zod nor the database catches
+   (see `docs/API-CONVENTIONS.md` §1)
+3. Business logic
+4. Typed response with correct HTTP status code
 
 ## Error Handling
 
-- Use specific HTTP codes: 400 (bad input), 401 (unauth), 403 (forbidden), 404 (not found), 422 (validation), 500 (server error)
+- Use specific HTTP codes: 400 (bad input), 401 (unauth), 404 (not found), 422 (validation), 500 (server error)
+- No 403 and no 409 — another user's resource is 404, duplicates are 422
+  (`docs/API-CONVENTIONS.md` §3)
 - Explicit error handling; do not wrap everything in blind try/catch
 - Never leak internal errors to the client
 - Never log passwords, tokens, or PII
@@ -163,6 +180,28 @@ the way becomes a new unchecked item, not a silent omission.
 Add or update the matching request in `api.http` (method, path, example
 body) so it stays a runnable, current map of the API surface — not just a
 snapshot from whenever it was created.
+
+## When the shape of what this API is changes
+
+Update the "Status", "API surface" and — if relevant — "Architectural
+decisions" sections of **both** `README.md` and `README.uk.md`. The two
+language versions are one artifact and never diverge.
+
+Triggers:
+- a domain entity ships its first endpoint (accounts, categories,
+  transactions, budgets, reports…)
+- the auth approach, data model or deployment story changes
+- a new entry in `docs/DECISIONS.md` contradicts something the README already
+  claims
+
+Not a trigger: a new filter param, a bug fix, a test, an internal refactor.
+The question is "does the README still describe this project correctly", not
+"did I touch a route file".
+
+The README is the only public-facing document in the repository, and it is
+read by people deciding whether the rest is worth reading. It has already
+drifted once into describing a data model this project rejected in its very
+first architectural decision.
 
 ## When you add or change local dev workflow
 
