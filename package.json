@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=24.0.0"
   },
-  "description": "[English version](README.md)",
+  "description": "REST API for tracking personal income and expenses: accounts, categories, transactions and budgets",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

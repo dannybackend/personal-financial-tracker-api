@@ -181,16 +181,12 @@ docker compose down -v
 
 ## Поточний стан проєкту
 
-Зараз у проєкті є:
+Що працює і що далі — секція «Стан» у [`README.uk.md`](../README.uk.md);
+статус чекпоінтів — `docs/PROGRESS.md`; живий беклог — GitHub Issues.
 
-- bootstrap Hono-сервера
-- підключення PostgreSQL через Drizzle
-- Drizzle-схема і початкова міграція
-- конфігурація Better Auth і таблиці `auth_*`; реєстрація і логін працюють через змонтовані Better Auth ендпоінти, без кастомних `/api/auth/register`/`/api/auth/login` (див. `docs/DECISIONS.md`)
-- Docker Compose для PostgreSQL і Redis
-- Інтеграційні тести (Vitest) на потік реєстрації/логіну, проти окремої тестової бази (`src/app.test.ts`)
-
-Ще не реалізовані бізнесові endpoints для accounts, categories, transactions або budgets. Актуальний статус дивись у `docs/PROGRESS.md`.
+Цей файл раніше дублював той самий перелік окремим списком — і розійшовся:
+він стверджував, що бізнесових endpoints немає, вже після того, як accounts
+CRUD був змерджений. Прибрано, щоб не розходилось удруге.
 
 ## Troubleshooting
 

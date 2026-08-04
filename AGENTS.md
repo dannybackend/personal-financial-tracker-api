@@ -39,16 +39,41 @@ src/
 - One function = one responsibility
 - Descriptive names: `userId` not `uid`, `getUserById` not `getUser`
 
+## API Conventions
+
+`docs/API-CONVENTIONS.md` holds the binding cross-cutting contract every
+endpoint obeys: status codes, error shape, ownership checks, money and currency
+representation, date types, pagination, soft delete, transfers. Read it before
+writing or changing a handler — it is what keeps modules agreeing with each
+other instead of each inventing its own shape.
+
+Changing a rule there is an architectural decision: append to
+`docs/DECISIONS.md` first, then update the conventions file.
+
 ## Handler Pattern
 
-Every route handler must follow this order:
+Every route handler we own must follow this order:
 1. Validate input with Zod schema
-2. Business logic
-3. Typed response with correct HTTP status code
+2. Verify the authenticated user owns every entity referenced by an id in the
+   payload — a foreign key proves the row exists, not whose it is. Missing this
+   check is an IDOR that neither Zod nor the database catches
+   (see `docs/API-CONVENTIONS.md` §1)
+3. Business logic
+4. Typed response with correct HTTP status code
+
+`/api/auth/*` is mounted straight onto Better Auth's handler and is exempt by
+decision — it has no wrapper of ours to apply this to
+(`docs/API-CONVENTIONS.md` §2).
 
 ## Error Handling
 
-- Use specific HTTP codes: 400 (bad input), 401 (unauth), 403 (forbidden), 404 (not found), 422 (validation), 500 (server error)
+- Use specific HTTP codes: 400 (malformed JSON only — the body could not be
+  parsed), 401 (no valid session), 404 (path resource missing or not yours),
+  422 (well-formed but invalid: failed validation, a body id owned by someone
+  else, duplicate keys), 500 (server error)
+- No 403 and no 409 — another user's resource is 404 when addressed by path but
+  422 when its id arrives in a body; duplicates are 422
+  (`docs/API-CONVENTIONS.md` §3)
 - Explicit error handling; do not wrap everything in blind try/catch
 - Never leak internal errors to the client
 - Never log passwords, tokens, or PII
@@ -81,11 +106,26 @@ Every route handler must follow this order:
 
 ## After Opening a PR
 
-Once CodeRabbit reviews the PR, follow CONTRIBUTING.md's PR Rules: read
-every comment, fix it or reply explaining why not. Do not leave comments
-unaddressed even when the underlying code gets fixed anyway — the
-explanation is part of the record, and CodeRabbit uses it to improve
-future reviews on this repo.
+Read every CodeRabbit comment and act on each one. Write a reply in the
+thread when — and only when — one of these holds:
+
+- you disagree with the comment
+- you fixed it **differently** from what was suggested
+- the fix is such that the diff alone does not show why
+
+A verbatim fix needs no reply: the diff and the commit message are already
+the record. When unsure whether a case qualifies, write the reply.
+
+Do not resolve threads by hand. CodeRabbit closes them itself — the ones it
+considers fixed on its incremental pass, and the ones it withdraws after you
+argue. Replying to a thread gets an answer in seconds and does not wait for
+a full review pass to finish, so disagree as soon as you see the comment
+rather than after the run completes.
+
+Never dismiss a comment silently (`CONTRIBUTING.md` → PR Rules). Silence and
+a verbatim fix are different things; the first is not allowed, the second
+needs no words. See `docs/DECISIONS.md` → "Відповідь на коментар CodeRabbit —
+за винятком, не за замовчуванням".
 
 ## Task Scope
 
@@ -163,6 +203,28 @@ the way becomes a new unchecked item, not a silent omission.
 Add or update the matching request in `api.http` (method, path, example
 body) so it stays a runnable, current map of the API surface — not just a
 snapshot from whenever it was created.
+
+## When the shape of what this API is changes
+
+Update the "Status", "API surface" and — if relevant — "Architectural
+decisions" sections of **both** `README.md` and `README.uk.md`. The two
+language versions are one artifact and never diverge.
+
+Triggers:
+- a domain entity ships its first endpoint (accounts, categories,
+  transactions, budgets, reports…)
+- the auth approach, data model or deployment story changes
+- a new entry in `docs/DECISIONS.md` contradicts something the README already
+  claims
+
+Not a trigger: a new filter param, a bug fix, a test, an internal refactor.
+The question is "does the README still describe this project correctly", not
+"did I touch a route file".
+
+The README is the only public-facing document in the repository, and it is
+read by people deciding whether the rest is worth reading. It has already
+drifted once into describing a data model this project rejected in its very
+first architectural decision.
 
 ## When you add or change local dev workflow
 
