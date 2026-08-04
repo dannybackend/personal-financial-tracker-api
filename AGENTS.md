@@ -106,11 +106,26 @@ decision — it has no wrapper of ours to apply this to
 
 ## After Opening a PR
 
-Once CodeRabbit reviews the PR, follow CONTRIBUTING.md's PR Rules: read
-every comment, fix it or reply explaining why not. Do not leave comments
-unaddressed even when the underlying code gets fixed anyway — the
-explanation is part of the record, and CodeRabbit uses it to improve
-future reviews on this repo.
+Read every CodeRabbit comment and act on each one. Write a reply in the
+thread when — and only when — one of these holds:
+
+- you disagree with the comment
+- you fixed it **differently** from what was suggested
+- the fix is such that the diff alone does not show why
+
+A verbatim fix needs no reply: the diff and the commit message are already
+the record. When unsure whether a case qualifies, write the reply.
+
+Do not resolve threads by hand. CodeRabbit closes them itself — the ones it
+considers fixed on its incremental pass, and the ones it withdraws after you
+argue. Replying to a thread gets an answer in seconds and does not wait for
+a full review pass to finish, so disagree as soon as you see the comment
+rather than after the run completes.
+
+Never dismiss a comment silently (`CONTRIBUTING.md` → PR Rules). Silence and
+a verbatim fix are different things; the first is not allowed, the second
+needs no words. See `docs/DECISIONS.md` → "Відповідь на коментар CodeRabbit —
+за винятком, не за замовчуванням".
 
 ## Task Scope
 
