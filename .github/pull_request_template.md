@@ -25,8 +25,8 @@ blank, so the difference between "did not apply" and "forgot" stays visible.
 
 ## API contract
 
-- [ ] Handler follows the 4-step pattern, including step 2 — ownership verified for **every** id arriving in a request body (`docs/API-CONVENTIONS.md` §1)
-- [ ] Status codes, error shape, money/currency/date formats match `docs/API-CONVENTIONS.md`
+- [ ] Handler follows the 4-step pattern, including step 2 — ownership verified for **every** id arriving in a request body (`docs/API-CONVENTIONS.md` §1). Routes delegated to Better Auth (`/api/auth/*`) are exempt by decision (§2)
+- [ ] Response conforms to **every applicable section** of `docs/API-CONVENTIONS.md` §3–§11 — status codes, error shape, money, currency, dates, pagination, soft delete, transfers, naming. Not only the sections you happened to remember
 - [ ] Every new endpoint has at least one integration test
 
 ## Checks

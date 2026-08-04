@@ -23,7 +23,7 @@
 |---|---|---|
 | [1](#1-ownership-the-rule-that-fks-do-not-enforce) | Ownership | Every id in a body is verified to belong to the caller |
 | [2](#2-handler-order) | Handler order | Validate → verify ownership → logic → typed response |
-| [3](#3-status-codes) | Status codes | No 403, no 409 — someone else's row is 404, duplicates are 422 |
+| [3](#3-status-codes) | Status codes | No 403, no 409 — someone else's row is 404 by path but 422 by body id; duplicates are 422 |
 | [4](#4-error-shape) | Error shape | One shape everywhere; internals never reach the client |
 | [5](#5-money) | Money | `numeric(12,2)`, JSON string, always positive, one balance formula |
 | [6](#6-currency) | Currency | `char(3)` ISO-4217; aggregates group by currency, never mix |
@@ -43,7 +43,7 @@ authenticated user before it is written.**
 A foreign key guarantees the referenced row *exists*. It says nothing about
 *whose* it is. Without an explicit check, this succeeds:
 
-```
+```http
 POST /transactions { "accountId": "<another user's account>", "amount": "100.00" }
 ```
 
@@ -70,6 +70,15 @@ Every endpoint that accepts an id in a body needs a test for this. Not a shared
 3. Business logic
 4. Typed response with the correct status code
 
+**Scope: handlers this project owns.** `/api/auth/*` is mounted straight onto
+Better Auth's own handler (`auth.handler`, `src/app.ts`) and deliberately has no
+wrapper of ours — see `docs/DECISIONS.md` → "Реєстрація напряму через
+`/api/auth/sign-up/email`". Those routes therefore do not follow this order,
+do not use `parseBody`/`parseParam`, and do not return our error shape. That is
+a decision, not a gap; when Better Auth's behaviour and this contract disagree
+on those paths, Better Auth wins. Everything mounted by us obeys §1–§11
+without exception.
+
 ---
 
 ## 3. Status codes
@@ -81,8 +90,8 @@ Every endpoint that accepts an id in a body needs a test for this. Not a shared
 | `204` | Successful delete, no body |
 | `400` | Malformed JSON body — the request could not be parsed at all |
 | `401` | No valid session |
-| `404` | Resource does not exist **or belongs to another user** — indistinguishable by design |
-| `422` | Well-formed request that fails validation, including ownership of a body id |
+| `404` | Resource **addressed in the URL path** does not exist or belongs to another user — indistinguishable by design |
+| `422` | Well-formed request that fails validation, including an id **in the body** that belongs to another user (§1), and duplicate-key violations |
 | `500` | Unexpected server error |
 
 **No `403`.** Confirming "this exists, it just isn't yours" leaks the existence

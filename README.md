@@ -41,7 +41,7 @@ flowchart LR
     client["Client<br/>REST + HttpOnly session cookie"]
 
     subgraph api["Hono API — Node.js 24 / TypeScript strict"]
-        routes["Route handlers<br/>Zod validation → ownership check → logic"]
+        routes["Route handlers<br/>Zod validation → ownership check → logic → typed response"]
         mw["requireAuth middleware<br/>session → domain user"]
         ba["Better Auth<br/>email + password, rate limited"]
         orm["Drizzle ORM"]
@@ -109,15 +109,16 @@ The full record with reasoning, trade-offs and rejected alternatives is in
 | Sessions in an HttpOnly cookie, not a JWT in `localStorage` | JavaScript cannot read the cookie even during an XSS |
 | Better Auth tables kept separate from the domain `users` table | Avoids `accounts` (financial) colliding with `auth_account` (OAuth), and separates authentication from domain data |
 | Registration and login go straight to Better Auth's own endpoints | A custom wrapper would be another layer to maintain with no gain |
-| Another user's resource returns `404`, never `403` | `403` confirms the resource exists — `404` leaks nothing |
+| Another user's resource returns `404`, never `403` — but `422` when its id arrives in a request body | `403` confirms the resource exists; `404` leaks nothing. A body id is input, so it fails validation instead |
 | Balance computed, never stored | Two concurrent writes cannot overwrite each other's result if there is no field to overwrite |
 | Session hook is *not* atomic with user creation | Verified against Better Auth's source: `after` hooks run post-commit by design. The risk is accepted explicitly rather than hidden |
 | Integration tests run against a separate real database | Mocked persistence proves the mock works, not the query |
 
 Decided and pending implementation: ISO-4217 currency per account with
 aggregates never mixing currencies, positive-only amounts with direction from
-`type`, calendar dates for transactions, soft-deleted accounts, transfers as
-two linked rows. See the *Schema Hardening* milestone.
+`type`, calendar dates for transactions, soft-deleted accounts, budgets
+anchored to an explicit `period_start` with per-period uniqueness, and
+transfers as two linked rows. See the *Schema Hardening* milestone.
 
 Cross-cutting API rules every endpoint obeys — status codes, error shape,
 ownership checks, money and date formats, pagination — are in
@@ -127,7 +128,7 @@ ownership checks, money and date formats, pagination — are in
 
 ## API surface
 
-```
+```text
 POST   /api/auth/sign-up/email     register (no auto sign-in, by design)
 POST   /api/auth/sign-in/email     log in → Set-Cookie: session token
 GET    /api/auth/get-session       current session

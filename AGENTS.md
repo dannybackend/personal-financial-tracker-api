@@ -52,7 +52,7 @@ Changing a rule there is an architectural decision: append to
 
 ## Handler Pattern
 
-Every route handler must follow this order:
+Every route handler we own must follow this order:
 1. Validate input with Zod schema
 2. Verify the authenticated user owns every entity referenced by an id in the
    payload — a foreign key proves the row exists, not whose it is. Missing this
@@ -61,10 +61,18 @@ Every route handler must follow this order:
 3. Business logic
 4. Typed response with correct HTTP status code
 
+`/api/auth/*` is mounted straight onto Better Auth's handler and is exempt by
+decision — it has no wrapper of ours to apply this to
+(`docs/API-CONVENTIONS.md` §2).
+
 ## Error Handling
 
-- Use specific HTTP codes: 400 (bad input), 401 (unauth), 404 (not found), 422 (validation), 500 (server error)
-- No 403 and no 409 — another user's resource is 404, duplicates are 422
+- Use specific HTTP codes: 400 (malformed JSON only — the body could not be
+  parsed), 401 (no valid session), 404 (path resource missing or not yours),
+  422 (well-formed but invalid: failed validation, a body id owned by someone
+  else, duplicate keys), 500 (server error)
+- No 403 and no 409 — another user's resource is 404 when addressed by path but
+  422 when its id arrives in a body; duplicates are 422
   (`docs/API-CONVENTIONS.md` §3)
 - Explicit error handling; do not wrap everything in blind try/catch
 - Never leak internal errors to the client
