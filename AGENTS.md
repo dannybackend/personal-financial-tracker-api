@@ -3,8 +3,15 @@
 > Single source of truth for AI coding agents in this project.
 > Claude Code (`CLAUDE.md`), Cursor (`.cursor/rules/core.mdc`) and Google
 > Antigravity (`.agents/rules/core.md`) import this file directly via each
-> tool's native `@file` syntax — edit only here, nothing else to keep in sync.
+> tool's native `@file` syntax — nothing to hand-sync between tools.
 > Codex / VS Code read this file directly.
+>
+> **This file holds only what shapes code as it is written**, because every
+> one of those tools loads it in full on every request. Rules that apply at a
+> specific moment instead live in `.claude/skills/` (loaded on demand) and
+> `.claude/hooks/` (fire on the matching file edit) — see "Situational rules"
+> below. Formats for `DECISIONS.md` / `LEARNING.md` entries are documented in
+> those files themselves and are deliberately not repeated here.
 
 ## Stack
 
@@ -98,157 +105,44 @@ decision — it has no wrapper of ours to apply this to
 - Tests live next to the code: `src/routes/users.test.ts`
 - Every new endpoint must have at least one integration test in Vitest
 
-## Before Opening a PR
+## Situational rules
 
-- Run `npm run lint`
-- Run `npm run typecheck`
-- Run `npm test`
+These do not shape the code you write, they apply at a specific moment. They
+live outside this file so it stays what gets loaded on every request.
 
-## After Opening a PR
+| When | Where it lives |
+|---|---|
+| Starting a task, branching, labels, issue links, committing | skill `task-workflow` |
+| Opening a PR, handling CodeRabbit review | skill `pr-workflow` |
+| Editing `src/db/schema.ts`, adding a migration or a route module | hook `.claude/hooks/doc-rules.cjs` (fires by itself) |
 
-Read every CodeRabbit comment and act on each one. Write a reply in the
-thread when — and only when — one of these holds:
+## Documentation duties
 
-- you disagree with the comment
-- you fixed it **differently** from what was suggested
-- the fix is such that the diff alone does not show why
+Each of these has a **home file that documents its own format** — go there for
+the shape of an entry, do not reproduce it here. `.claude/hooks/doc-rules.cjs`
+raises the ones with a reliable file trigger at the moment they apply.
 
-A verbatim fix needs no reply: the diff and the commit message are already
-the record. When unsure whether a case qualifies, write the reply.
+- **Architectural decision** — any trade-off between viable approaches (schema
+  design, cascade/delete behaviour, auth strategy, caching, indexing, data
+  types) → append to `docs/DECISIONS.md`. Append only; corrections go in as a
+  new "Уточнення" entry that names the record it supersedes.
+- **Backend concept appearing for the first time** (migrations, transactions,
+  indexes, middleware, rate limiting, queues, caching, OpenAPI, CI, deploy…) →
+  append to `docs/LEARNING.md`.
+- **Checkpoint or task completed** → tick it in `docs/PROGRESS.md`. Follow-up
+  work discovered on the way becomes a new unchecked item, never a silent
+  omission.
+- **Endpoint added or changed** → matching request in `api.http`, so it stays a
+  runnable map rather than a snapshot.
+- **Local dev workflow changed** (new tool, npm script, docker service, way to
+  inspect state) → `docs/ONBOARDING.md`.
+- **The shape of what this API is changed** → the "Status", "API surface" and
+  if relevant "Architectural decisions" sections of **both** `README.md` and
+  `README.uk.md`; the two language versions are one artifact and never diverge.
+  Triggers: a domain entity ships its first endpoint, the auth/data model/
+  deployment story changes, or a new decision contradicts what the README
+  claims. Not triggers: a filter param, a bug fix, a test, a refactor. The
+  README is the only public-facing document here, and it has already drifted
+  once into describing a data model this project rejected in its very first
+  decision.
 
-Do not resolve threads by hand. CodeRabbit closes them itself — the ones it
-considers fixed on its incremental pass, and the ones it withdraws after you
-argue. Replying to a thread gets an answer in seconds and does not wait for
-a full review pass to finish, so disagree as soon as you see the comment
-rather than after the run completes.
-
-Never dismiss a comment silently (`CONTRIBUTING.md` → PR Rules). Silence and
-a verbatim fix are different things; the first is not allowed, the second
-needs no words. See `docs/DECISIONS.md` → "Відповідь на коментар CodeRabbit —
-за винятком, не за замовчуванням".
-
-## Task Scope
-
-- Tackle one endpoint or one module at a time
-- After generating code, summarize what was done and flag any edge cases not yet handled
-
-## Task tracking
-
-Work is tracked as GitHub Issues on this repo, grouped into milestones per
-feature area. Before starting a task, check the issue for current,
-authoritative scope (`gh issue view <number>`) — descriptions may be edited
-after creation as understanding changes.
-
-- Branch naming: `{issue-number}-{slugified-issue-title}` (matches GitHub's
-  own "Create a branch" button on an issue). Work not tied to a single
-  numbered issue (cross-cutting docs/process cleanup) uses `{type}/{slug}`
-  instead (e.g. `fix/docs-consistency-cleanup`) — same convention already
-  used by past PRs like `feat/document-task-tracking-workflow`.
-- PR description includes `Closes #<number>` so merging auto-closes the
-  issue. This only works from the PR description itself, or from a commit
-  message once that commit is merged into the default branch (the commit
-  doesn't need to be made directly on the default branch, just end up
-  there) — never from a PR comment, GitHub does not parse comments for
-  closing keywords.
-- Labels: `type:feature`, `type:testing`, `type:infra`, `type:docs` — pick
-  the one matching the primary nature of the work.
-- Shared or cross-cutting work needed by multiple other issues (e.g. a
-  middleware several endpoints depend on) gets its own tracked issue, filed
-  under the first milestone that needs it — don't build it silently inside
-  whichever issue happens to need it first.
-- Hard prerequisites between issues must be linked structurally, not just
-  mentioned in prose: `gh issue edit <blocked> --add-blocked-by <blocker>`.
-  A developer opening the blocked issue cold must see the dependency in
-  GitHub's own UI, not have to infer it from a conversation they weren't
-  part of.
-- Status board: https://github.com/users/Danny-Lenko/projects/1 (owned by
-  the maintainer's personal account, not the repo — won't appear in the
-  repo's own Projects tab; `gh project item-list 1 --owner Danny-Lenko`
-  works from any session)
-
-## Commit discipline
-
-Writing code and committing/pushing it are separate steps, each needing
-its own approval. After implementing a change, stop, summarize what
-changed, and wait — "implement X" is not itself approval to commit.
-
-Bundling is fine when the change was already discussed in this
-conversation and is small (e.g. applying a single review comment) — "yes,
-go ahead" can cover both the fix and the commit then. For anything larger
-or new, get explicit confirmation before committing.
-
-## When you make an architectural decision
-
-Any time you implement something involving a trade-off between viable
-approaches (schema design, cascade/delete behavior, auth strategy, caching,
-indexing, data types), append a new entry to docs/DECISIONS.md:
-
-### Short title of the decision
-
-**Рішення:** what was chosen
-**Чому:** why, in 1-2 sentences
-**Компроміс:** (optional) known trade-off
-**Альтернатива яку відкинули:** (optional) what was considered and rejected
-
-Append only — never rewrite or delete existing entries.
-
-## When you complete a checkpoint or task
-
-Check off the corresponding item in docs/PROGRESS.md. If the work isn't
-listed, add it under the correct phase first. Follow-up work discovered along
-the way becomes a new unchecked item, not a silent omission.
-
-## When you add or change an API endpoint
-
-Add or update the matching request in `api.http` (method, path, example
-body) so it stays a runnable, current map of the API surface — not just a
-snapshot from whenever it was created.
-
-## When the shape of what this API is changes
-
-Update the "Status", "API surface" and — if relevant — "Architectural
-decisions" sections of **both** `README.md` and `README.uk.md`. The two
-language versions are one artifact and never diverge.
-
-Triggers:
-- a domain entity ships its first endpoint (accounts, categories,
-  transactions, budgets, reports…)
-- the auth approach, data model or deployment story changes
-- a new entry in `docs/DECISIONS.md` contradicts something the README already
-  claims
-
-Not a trigger: a new filter param, a bug fix, a test, an internal refactor.
-The question is "does the README still describe this project correctly", not
-"did I touch a route file".
-
-The README is the only public-facing document in the repository, and it is
-read by people deciding whether the rest is worth reading. It has already
-drifted once into describing a data model this project rejected in its very
-first architectural decision.
-
-## When you add or change local dev workflow
-
-If you add a new required tool, script, or way to inspect local state (a
-new docker service, a new npm script, a new way to view the database),
-add it to docs/ONBOARDING.md so a fresh setup covers it.
-
-## When you introduce a backend concept for the first time
-
-This is a learning project. Keep `docs/LEARNING.md` as a concise chronological
-learning journal for backend concepts that appear in the codebase for the first
-time.
-
-Add a short entry when a task first introduces a concept such as migrations,
-foreign keys, indexes, transactions, middleware, auth/session handling, Zod
-validation, rate limiting, queues, caching, integration tests, OpenAPI, CI, or
-deployment.
-
-Use the format already shown in `docs/LEARNING.md`:
-
-- **Де:** file or folder where the concept appears
-- **Що це:** short plain-language explanation
-- **Навіщо в цьому проєкті:** project-specific reason
-- **Ключова думка:** one memorable takeaway
-
-Append new entries at the bottom of `docs/LEARNING.md`. Keep entries brief and
-do not duplicate concepts that are already explained there.

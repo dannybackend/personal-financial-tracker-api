@@ -11,6 +11,7 @@
 - [x] Node.js 24, TypeScript 5 (strict mode), ESLint
 - [x] Hono сервер запускається (`npm run dev`)
 - [x] AGENTS.md (SSOT) + CLAUDE.md, .cursor/rules/, .agents/rules/ (імпорт AGENTS.md) + CONTRIBUTING.md
+- [x] Розділення AGENTS.md: завжди-контекст лишився, ситуативні правила — в `.claude/skills/`, документаційні тригери — в `.claude/hooks/` (issue #60)
 - [x] CodeRabbit підключено, `.coderabbit.yaml` налаштовано
 - [x] Онбординг для нового розробника (`docs/ONBOARDING.md`)
 - [x] Навчальний журнал бекенд-концепцій (`docs/LEARNING.md`)

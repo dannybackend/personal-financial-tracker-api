@@ -1,7 +1,8 @@
 # Contributing Guide
 
 ## AI Agent Setup
-- **Single source of truth** — all agent rules live in `AGENTS.md` at the repo root. Edit only there; every tool below imports it directly, nothing to hand-sync.
+- **Single source of truth** — always-relevant agent rules live in `AGENTS.md` at the repo root; every tool below imports it directly, nothing to hand-sync.
+- **Situational rules** — `.claude/skills/` (task and PR workflow, loaded on demand) and `.claude/hooks/` (documentation reminders that fire on the matching file edit). Committed on purpose: these are project rules, not personal setup. Claude Code only. See `docs/DECISIONS.md` → "Розділення `AGENTS.md` на завжди-контекст і ситуативні правила".
 - **VS Code + Codex** — reads `AGENTS.md` directly
 - **Claude Code** — `CLAUDE.md` in repo root, imports `AGENTS.md` in full
 - **Cursor** — `.cursor/rules/core.mdc` (always-on), imports `AGENTS.md` in full; minimal `.cursorrules` pointer in repo root for discoverability
