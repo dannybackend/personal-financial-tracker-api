@@ -78,6 +78,21 @@ function isNewFile(root, relPath) {
 }
 
 /**
+ * True when `absPath` could match a rule at all, judged on the path alone.
+ *
+ * Checked before the git root is resolved, because resolving it costs a
+ * synchronous `git rev-parse` and almost every edit in a session matches no
+ * rule. Deliberately loose - it only has to be cheap and never reject a path
+ * `rulesFor` would have accepted; `rulesFor` still decides.
+ */
+function mayMatch(absPath) {
+  const p = absPath.split(path.sep).join('/');
+  return (
+    /\/src\/db\/(auth-)?schema\.ts$/.test(p) || p.includes('/src/routes/')
+  );
+}
+
+/**
  * Maps an edited file to the documentation rules it triggers.
  * Returns null when nothing applies - the overwhelmingly common case.
  */
@@ -90,7 +105,7 @@ function rulesFor(p, root, isCreate) {
       '- generate the migration (`npm run db:generate`) - schema edits without one drift silently',
       '- if the migration introduces a backend concept for the first time in this project (indexes, constraints, transactions, soft delete...), append an entry to docs/LEARNING.md',
       '- if this involved a trade-off between viable approaches, append an entry to docs/DECISIONS.md (append only; corrections go in as a new "Уточнення" entry)',
-      '- keep the Mermaid ERD in step with the tables you changed',
+      '- keep the Mermaid ERD in step with the tables you changed - it exists in BOTH README.md and README.uk.md, which never diverge',
       '- docs/API-CONVENTIONS.md §5-§7 bind money, currency and date columns',
     ];
   }
@@ -136,6 +151,8 @@ function main() {
   // file_path may be absolute or relative to the session cwd; either way the
   // rules are matched against a path relative to the git root.
   const abs = path.resolve(input.cwd || process.cwd(), filePath);
+  if (!mayMatch(abs)) return; // Cheap reject first - no subprocess for ordinary edits.
+
   const root = repoRoot(path.dirname(abs));
   if (!root) return; // Outside a work tree there is nothing to remind about.
 
