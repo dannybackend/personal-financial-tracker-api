@@ -55,9 +55,12 @@ function repoRoot(fromDir) {
 }
 
 /**
- * True when `relPath` is not yet tracked by git, i.e. the edit just created it.
- * Used so route reminders fire once per new module rather than on every edit -
- * a reminder that appears twenty times per feature stops being read.
+ * True when `relPath` is not yet tracked by git.
+ *
+ * Untracked alone is NOT enough to mean "just created": a new file stays
+ * untracked until `git add`, so every subsequent edit would re-trigger. The
+ * caller pairs this with `tool_name === 'Write'`, which is the tool that
+ * creates a file; later modifications arrive as `Edit`.
  *
  * `--` separates the pathspec from options so a path that starts with a dash
  * is never parsed as one.
@@ -78,26 +81,31 @@ function isNewFile(root, relPath) {
  * Maps an edited file to the documentation rules it triggers.
  * Returns null when nothing applies - the overwhelmingly common case.
  */
-function rulesFor(p, root) {
-  if (p === 'src/db/schema.ts') {
+function rulesFor(p, root, isCreate) {
+  // Both files are listed as schema sources in drizzle.config.ts, so either
+  // one changing means a migration is owed.
+  if (p === 'src/db/schema.ts' || p === 'src/db/auth-schema.ts') {
     return [
       'Schema changed. AGENTS.md rules that apply now:',
       '- generate the migration (`npm run db:generate`) - schema edits without one drift silently',
+      '- if the migration introduces a backend concept for the first time in this project (indexes, constraints, transactions, soft delete...), append an entry to docs/LEARNING.md',
       '- if this involved a trade-off between viable approaches, append an entry to docs/DECISIONS.md (append only; corrections go in as a new "Уточнення" entry)',
       '- keep the Mermaid ERD in step with the tables you changed',
       '- docs/API-CONVENTIONS.md §5-§7 bind money, currency and date columns',
     ];
   }
 
-  if (/^src\/db\/migrations\/.+\.(sql|ts)$/.test(p) && isNewFile(root, p)) {
-    return [
-      'New migration. If it introduces a backend concept for the first time in',
-      'this project (indexes, constraints, transactions, soft delete...), append',
-      'a short entry to docs/LEARNING.md in the format that file documents.',
-    ];
-  }
+  // No trigger on src/db/migrations/: drizzle-kit writes those files itself
+  // through Bash, so a Write|Edit hook never sees them. The LEARNING.md
+  // reminder is folded into the schema rule above, which fires one step
+  // earlier - at the edit that makes the migration necessary.
 
-  if (/^src\/routes\/[^/]+\.ts$/.test(p) && !p.endsWith('.test.ts') && isNewFile(root, p)) {
+  if (
+    isCreate &&
+    /^src\/routes\/[^/]+\.ts$/.test(p) &&
+    !p.endsWith('.test.ts') &&
+    isNewFile(root, p)
+  ) {
     return [
       'New route module. AGENTS.md rules that apply now:',
       '- add the matching requests to api.http so it stays a runnable map of the API',
@@ -132,7 +140,7 @@ function main() {
   if (!root) return; // Outside a work tree there is nothing to remind about.
 
   const rel = path.relative(root, abs).split(path.sep).join('/');
-  const rules = rulesFor(rel, root);
+  const rules = rulesFor(rel, root, input.tool_name === 'Write');
   if (!rules) return; // Silence is the default. Noise is how reminders die.
 
   process.stdout.write(
