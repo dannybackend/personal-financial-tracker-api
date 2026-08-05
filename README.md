@@ -168,7 +168,7 @@ npm run lint && npm run typecheck && npm test
 
 | File | What it holds |
 |---|---|
-| [`AGENTS.md`](AGENTS.md) | Single source of truth for AI coding agents; imported by Claude Code, Cursor and Antigravity |
+| [`AGENTS.md`](AGENTS.md) | Rules that shape code as it is written; loaded on every request. Situational workflow lives in `.claude/skills/` and `.claude/hooks/` |
 | [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) | Binding cross-cutting API contract |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Append-only architectural decision log |
 | [`docs/LEARNING.md`](docs/LEARNING.md) | Backend concepts as they first appear in the codebase |

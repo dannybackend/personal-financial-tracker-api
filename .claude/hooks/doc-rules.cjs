@@ -11,10 +11,15 @@
  *
  * Contract (see https://code.claude.com/docs/en/hooks):
  * - input: JSON on stdin, `tool_input.file_path` is the edited file
- * - output: JSON on stdout with hookSpecificOutput.additionalContext reaches
- *   the agent. Plain text does NOT - it only lands in the debug log, so a bare
+ * - output: JSON on stdout, where hookSpecificOutput.additionalContext adds a
+ *   reminder to the agent's context. Plain text on stdout is written to the
+ *   debug log and for most events does not reach the transcript, so a bare
  *   console.log here would look like it works while saying nothing.
  * - always exit 0: this hook informs, it never blocks an edit.
+ *
+ * All paths are resolved against the git root, never the session's working
+ * directory: a session started in a subdirectory would otherwise compute the
+ * wrong relative path and every rule would silently stop matching.
  *
  * Node rather than shell + jq: the team is on Windows, and jq is not installed
  * by default. Node is already a hard dependency of this project.
@@ -33,15 +38,35 @@ function readStdin() {
 }
 
 /**
- * True when `file` is not yet tracked by git, i.e. the edit just created it.
+ * Absolute path of the repository root, or null outside a work tree.
+ * Resolved from the edited file's own directory so it is correct no matter
+ * where the session was started.
+ */
+function repoRoot(fromDir) {
+  try {
+    return execFileSync('git', ['rev-parse', '--show-toplevel'], {
+      cwd: fromDir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when `relPath` is not yet tracked by git, i.e. the edit just created it.
  * Used so route reminders fire once per new module rather than on every edit -
  * a reminder that appears twenty times per feature stops being read.
+ *
+ * `--` separates the pathspec from options so a path that starts with a dash
+ * is never parsed as one.
  */
-function isNewFile(file) {
+function isNewFile(root, relPath) {
   try {
-    execFileSync('git', ['ls-files', '--error-unmatch', file], {
+    execFileSync('git', ['ls-files', '--error-unmatch', '--', relPath], {
+      cwd: root,
       stdio: 'ignore',
-      cwd: path.dirname(file) || '.',
     });
     return false;
   } catch {
@@ -53,9 +78,7 @@ function isNewFile(file) {
  * Maps an edited file to the documentation rules it triggers.
  * Returns null when nothing applies - the overwhelmingly common case.
  */
-function rulesFor(relPath, absPath) {
-  const p = relPath.replace(/\\/g, '/');
-
+function rulesFor(p, root) {
   if (p === 'src/db/schema.ts') {
     return [
       'Schema changed. AGENTS.md rules that apply now:',
@@ -66,7 +89,7 @@ function rulesFor(relPath, absPath) {
     ];
   }
 
-  if (/^src\/db\/migrations\/.+\.(sql|ts)$/.test(p) && isNewFile(absPath)) {
+  if (/^src\/db\/migrations\/.+\.(sql|ts)$/.test(p) && isNewFile(root, p)) {
     return [
       'New migration. If it introduces a backend concept for the first time in',
       'this project (indexes, constraints, transactions, soft delete...), append',
@@ -74,7 +97,7 @@ function rulesFor(relPath, absPath) {
     ];
   }
 
-  if (/^src\/routes\/[^/]+\.ts$/.test(p) && !p.endsWith('.test.ts') && isNewFile(absPath)) {
+  if (/^src\/routes\/[^/]+\.ts$/.test(p) && !p.endsWith('.test.ts') && isNewFile(root, p)) {
     return [
       'New route module. AGENTS.md rules that apply now:',
       '- add the matching requests to api.http so it stays a runnable map of the API',
@@ -102,9 +125,14 @@ function main() {
   const filePath = input && input.tool_input && input.tool_input.file_path;
   if (!filePath) return;
 
-  const cwd = input.cwd || process.cwd();
-  const rel = path.relative(cwd, path.resolve(cwd, filePath));
-  const rules = rulesFor(rel, path.resolve(cwd, filePath));
+  // file_path may be absolute or relative to the session cwd; either way the
+  // rules are matched against a path relative to the git root.
+  const abs = path.resolve(input.cwd || process.cwd(), filePath);
+  const root = repoRoot(path.dirname(abs));
+  if (!root) return; // Outside a work tree there is nothing to remind about.
+
+  const rel = path.relative(root, abs).split(path.sep).join('/');
+  const rules = rulesFor(rel, root);
   if (!rules) return; // Silence is the default. Noise is how reminders die.
 
   process.stdout.write(

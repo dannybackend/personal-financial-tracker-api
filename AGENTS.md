@@ -1,17 +1,19 @@
 # AI Agent Instructions
 
-> Single source of truth for AI coding agents in this project.
-> Claude Code (`CLAUDE.md`), Cursor (`.cursor/rules/core.mdc`) and Google
-> Antigravity (`.agents/rules/core.md`) import this file directly via each
-> tool's native `@file` syntax — nothing to hand-sync between tools.
-> Codex / VS Code read this file directly.
+> Rules for AI coding agents. **This project is developed with Claude Code**,
+> which loads this file via `CLAUDE.md` plus `.claude/skills/` and
+> `.claude/hooks/`.
 >
-> **This file holds only what shapes code as it is written**, because every
-> one of those tools loads it in full on every request. Rules that apply at a
-> specific moment instead live in `.claude/skills/` (loaded on demand) and
-> `.claude/hooks/` (fire on the matching file edit) — see "Situational rules"
-> below. Formats for `DECISIONS.md` / `LEARNING.md` entries are documented in
-> those files themselves and are deliberately not repeated here.
+> **This file holds only what shapes code as it is written**, because it is
+> loaded in full on every request. Rules that apply at one specific moment live
+> in `.claude/skills/` (on demand) and `.claude/hooks/` (fire on the matching
+> file edit) — see "Situational rules" below. Entry formats for
+> `docs/DECISIONS.md` and `docs/LEARNING.md` live in those files, not here.
+>
+> Another tool reading this file gets everything that shapes code and **not**
+> the situational workflow. Cursor and Antigravity configs were deleted rather
+> than left half-alive; rebuild from this file if one is picked up again
+> (`docs/DECISIONS.md` → "Claude Code як єдиний підтримуваний інструмент").
 
 ## Stack
 

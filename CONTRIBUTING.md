@@ -1,13 +1,21 @@
 # Contributing Guide
 
 ## AI Agent Setup
-- **Single source of truth** — always-relevant agent rules live in `AGENTS.md` at the repo root; every tool below imports it directly, nothing to hand-sync.
-- **Situational rules** — `.claude/skills/` (task and PR workflow, loaded on demand) and `.claude/hooks/` (documentation reminders that fire on the matching file edit). Committed on purpose: these are project rules, not personal setup. Claude Code only. See `docs/DECISIONS.md` → "Розділення `AGENTS.md` на завжди-контекст і ситуативні правила".
-- **VS Code + Codex** — reads `AGENTS.md` directly
-- **Claude Code** — `CLAUDE.md` in repo root, imports `AGENTS.md` in full
-- **Cursor** — `.cursor/rules/core.mdc` (always-on), imports `AGENTS.md` in full; minimal `.cursorrules` pointer in repo root for discoverability
-- **Google Antigravity** — `.agents/rules/core.md` (always-on), imports `AGENTS.md` in full
-- **Code standards** — defined in `AGENTS.md`; do not duplicate here
+**Claude Code is the only supported agent tool here.** Cursor and Antigravity
+configs were removed rather than left half-alive once the situational rules
+moved into `.claude/`, which only Claude Code reads — see `docs/DECISIONS.md` →
+"Claude Code як єдиний підтримуваний інструмент".
+
+- **Always-relevant rules** — `AGENTS.md` at the repo root, loaded in full on
+  every request via `CLAUDE.md`. Code standards are defined there; do not
+  duplicate them here.
+- **Situational rules** — `.claude/skills/` (task and PR workflow, loaded on
+  demand) and `.claude/hooks/` (documentation reminders that fire on the
+  matching file edit). Committed on purpose: project rules, not personal setup.
+  Only `.claude/settings.local.json` stays out of git.
+- **Another tool** reading `AGENTS.md` directly still gets everything that
+  shapes code, but not the situational workflow. Rebuild that tool's config
+  from `AGENTS.md` rather than reviving the deleted ones.
 
 ## Local Setup
 ```bash
