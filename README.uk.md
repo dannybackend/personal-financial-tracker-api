@@ -176,6 +176,7 @@ npm run lint && npm run typecheck && npm test
 | [`docs/ONBOARDING.md`](docs/ONBOARDING.md) | Локальний запуск із чистого checkout |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Статус чекпоінтів |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Ширший план переходу frontend → backend |
+| [`docs/BOOTSTRAP.md`](docs/BOOTSTRAP.md) | Стек-агностична процедура старту: які рішення прийняти до першої моделі даних, зібрані з того, як їх пропустили тут |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Git flow, правила PR, налаштування агентів |
 
 Кожен pull request проходить рев'ю CodeRabbit; коментарі або виправляються,

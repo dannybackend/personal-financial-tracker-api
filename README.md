@@ -175,6 +175,7 @@ npm run lint && npm run typecheck && npm test
 | [`docs/ONBOARDING.md`](docs/ONBOARDING.md) | Local setup from a clean checkout |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Checkpoint status |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | The wider frontend → backend transition plan |
+| [`docs/BOOTSTRAP.md`](docs/BOOTSTRAP.md) | Stack-agnostic starting procedure: the decisions to settle before the first data model, distilled from getting them wrong here |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Git flow, PR rules, agent setup |
 
 Every pull request goes through CodeRabbit review; comments are either fixed or
