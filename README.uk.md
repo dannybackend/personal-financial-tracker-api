@@ -169,7 +169,7 @@ npm run lint && npm run typecheck && npm test
 
 | Файл | Що містить |
 |---|---|
-| [`AGENTS.md`](AGENTS.md) | Єдине джерело правди для AI-агентів; імпортується Claude Code, Cursor і Antigravity |
+| [`AGENTS.md`](AGENTS.md) | Правила, які формують код у момент написання; вантажаться в кожен запит. Ситуативний workflow — у `.claude/skills/` і `.claude/hooks/` |
 | [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) | Обов'язковий наскрізний контракт API |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Append-only журнал архітектурних рішень |
 | [`docs/LEARNING.md`](docs/LEARNING.md) | Бекенд-концепції в міру їх першої появи в коді |

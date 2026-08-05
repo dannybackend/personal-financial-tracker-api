@@ -10,7 +10,8 @@
 - [x] Docker Desktop (all-users install) + `docker-compose.yml` (PostgreSQL + Redis)
 - [x] Node.js 24, TypeScript 5 (strict mode), ESLint
 - [x] Hono сервер запускається (`npm run dev`)
-- [x] AGENTS.md (SSOT) + CLAUDE.md, .cursor/rules/, .agents/rules/ (імпорт AGENTS.md) + CONTRIBUTING.md
+- [x] AGENTS.md (SSOT) + CLAUDE.md, .cursor/rules/, .agents/rules/ (імпорт AGENTS.md) + CONTRIBUTING.md — конфіги Cursor/Antigravity згодом видалені разом із issue #60
+- [x] Розділення AGENTS.md: завжди-контекст лишився, ситуативні правила — в `.claude/skills/`, документаційні тригери — в `.claude/hooks/` (issue #60)
 - [x] CodeRabbit підключено, `.coderabbit.yaml` налаштовано
 - [x] Онбординг для нового розробника (`docs/ONBOARDING.md`)
 - [x] Навчальний журнал бекенд-концепцій (`docs/LEARNING.md`)
@@ -47,5 +48,5 @@
 ## Наступний крок
 
 Живий беклог і статус — GitHub Issues + Milestones цього репозиторію, не
-тут (див. `AGENTS.md` → "Task tracking"). Ця секція раніше дублювала той
+тут (див. `.claude/skills/task-workflow/SKILL.md`). Ця секція раніше дублювала той
 самий список окремим, застарілим рядком — прибрано, щоб не розходилось.
