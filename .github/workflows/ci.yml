@@ -26,7 +26,9 @@ jobs:
       postgres:
         # Same major version as docker-compose.yml — CI testing against a
         # different Postgres than local development is how a green pipeline
-        # starts lying.
+        # starts lying. Deliberately a tag and not a @sha256 digest: the tag is
+        # what holds this in step with compose, while a digest would pin CI to
+        # one architecture-specific build and let the two drift apart quietly.
         image: postgres:16-alpine
         env:
           POSTGRES_USER: personal_api
@@ -61,9 +63,20 @@ jobs:
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
 
     steps:
-      - uses: actions/checkout@v4
+      # Pinned to a commit SHA rather than a tag: a tag can be moved, and a
+      # moved tag is someone else's code running with this job's token — how
+      # tj-actions/changed-files was turned against its users in 2025. The
+      # trailing comment carries the human-readable version; keep the two in
+      # step when bumping.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # checkout leaves GITHUB_TOKEN in .git/config by default, and every
+          # step after this one executes code from the PR branch (npm lifecycle
+          # scripts, test files). Nothing here pushes, so there is no reason to
+          # leave a token where that code can read it.
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           # Quoted so YAML keeps it a version string: a future '24.10' read as
           # a number would silently become 24.1.
