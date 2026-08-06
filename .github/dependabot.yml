@@ -1,0 +1,24 @@
+# Exists because .github/workflows/ci.yml pins its actions to commit SHAs. A
+# SHA never moves — that is the whole point — which also means it never picks
+# up a fix on its own. Without this file the pins quietly turn into "old
+# version, no patches", the inverse of the reason they were added.
+#
+# Dependabot only opens pull requests. It cannot merge them, and it never sees
+# this repository's secrets.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    # For this ecosystem "/" means .github/workflows, not the repository root.
+    directory: /
+    schedule:
+      # Two actions, a handful of releases a year between them. Weekly would
+      # not find more, it would only look more often.
+      interval: monthly
+    commit-message:
+      prefix: ci
+    labels:
+      - 'type:infra'
+
+# npm is deliberately absent. It is a different order of noise — dozens of
+# dependencies against two actions — and a separate decision from the one that
+# pinning forced here.

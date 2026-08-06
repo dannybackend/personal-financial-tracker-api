@@ -17,6 +17,7 @@
 - [x] Навчальний журнал бекенд-концепцій (`docs/LEARNING.md`)
 - [x] Процедура старту нового проєкту (`docs/BOOTSTRAP.md`) — питання, які треба закрити до першої моделі даних (issue #62)
 - [x] GitHub Actions CI (`.github/workflows/ci.yml`) — typecheck + lint + test на кожен PR і на push у `main`, Postgres як service container, міграції через той самий `src/test/global-setup.ts` (issue #22)
+- [x] Dependabot (`.github/dependabot.yml`) — щомісячна перевірка оновлень для запінених на commit SHA action-ів у workflow (issue #22)
 
 ## Фаза 1 — Тиждень 3-5: Проєкт 1 — Personal Financial Tracker API
 
