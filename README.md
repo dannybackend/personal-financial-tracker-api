@@ -170,6 +170,7 @@ npm run lint && npm run typecheck && npm test
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | Rules that shape code as it is written; loaded on every request. Situational workflow lives in `.claude/skills/` and `.claude/hooks/` |
 | [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) | Binding cross-cutting API contract |
+| [`docs/BOOTSTRAP.md`](docs/BOOTSTRAP.md) | Starting procedure for a new project: the decisions to settle before the first data model, distilled from getting them wrong here. The questions are stack-agnostic; the tooling assumes Claude Code |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Append-only architectural decision log |
 | [`docs/LEARNING.md`](docs/LEARNING.md) | Backend concepts as they first appear in the codebase |
 | [`docs/ONBOARDING.md`](docs/ONBOARDING.md) | Local setup from a clean checkout |

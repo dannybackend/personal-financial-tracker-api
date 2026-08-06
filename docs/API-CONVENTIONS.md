@@ -9,8 +9,8 @@
 > agreeing with each other.
 >
 > Written in English to match `AGENTS.md` and `CONTRIBUTING.md`, which agents
-> load alongside it. The narrative docs (`DECISIONS.md`, `LEARNING.md`,
-> `ROADMAP.md`, `PROGRESS.md`, `ONBOARDING.md`) stay Ukrainian.
+> load alongside it. The narrative docs (`BOOTSTRAP.md`, `DECISIONS.md`,
+> `LEARNING.md`, `ROADMAP.md`, `PROGRESS.md`, `ONBOARDING.md`) stay Ukrainian.
 >
 > Rules here are **binding**. Changing one is an architectural decision: append
 > an entry to `docs/DECISIONS.md`, then update this file.

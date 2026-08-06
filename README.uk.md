@@ -171,6 +171,7 @@ npm run lint && npm run typecheck && npm test
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | Правила, які формують код у момент написання; вантажаться в кожен запит. Ситуативний workflow — у `.claude/skills/` і `.claude/hooks/` |
 | [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) | Обов'язковий наскрізний контракт API |
+| [`docs/BOOTSTRAP.md`](docs/BOOTSTRAP.md) | Процедура старту нового проєкту: які рішення прийняти до першої моделі даних, зібрані з того, як їх пропустили тут. Питання стек-агностичні, інструментарій — Claude Code |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Append-only журнал архітектурних рішень |
 | [`docs/LEARNING.md`](docs/LEARNING.md) | Бекенд-концепції в міру їх першої появи в коді |
 | [`docs/ONBOARDING.md`](docs/ONBOARDING.md) | Локальний запуск із чистого checkout |

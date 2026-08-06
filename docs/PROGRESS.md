@@ -15,6 +15,7 @@
 - [x] CodeRabbit підключено, `.coderabbit.yaml` налаштовано
 - [x] Онбординг для нового розробника (`docs/ONBOARDING.md`)
 - [x] Навчальний журнал бекенд-концепцій (`docs/LEARNING.md`)
+- [x] Процедура старту нового проєкту (`docs/BOOTSTRAP.md`) — питання, які треба закрити до першої моделі даних (issue #62)
 
 ## Фаза 1 — Тиждень 3-5: Проєкт 1 — Personal Financial Tracker API
 
@@ -39,7 +40,7 @@
 ## Заплановано, роботу не почато
 
 - [ ] `external_id` / `external_source` в `accounts` (окрема міграція)
-- [ ] GitHub Actions CI (typecheck + lint + test) — додати коли з'являться перші тести
+- [ ] GitHub Actions CI (typecheck + lint + test) — **не заблоковано**: тести є з 2026-07-28, умову «коли з'являться перші тести» знято 2026-08-01 (issue #22)
 - [ ] Merchants таблиця — Фаза 2
 - [ ] Банківська інтеграція (Monobank/Privat) — Фаза 2
 
