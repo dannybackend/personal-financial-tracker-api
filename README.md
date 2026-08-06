@@ -22,6 +22,8 @@ reasoning and its rejected alternatives in [`docs/DECISIONS.md`](docs/DECISIONS.
 - Accounts CRUD — 5 endpoints, fully scoped to the owner
 - Integration tests against a real, isolated test database (Vitest)
 - Local infrastructure via Docker Compose (PostgreSQL + Redis)
+- CI on every pull request — typecheck, lint and the full test suite against a
+  fresh PostgreSQL container (GitHub Actions)
 
 **Next**
 
@@ -30,7 +32,7 @@ soft delete), then categories, transactions and budgets, then the aggregation
 endpoints — balances, spending by category, cashflow, budget progress.
 Live backlog: [GitHub Issues](../../issues) grouped into milestones.
 
-Not yet: CI, deployment, OpenAPI docs.
+Not yet: deployment, OpenAPI docs.
 
 ---
 
@@ -73,6 +75,7 @@ flowchart LR
 | Auth | Better Auth | Modern, type-safe; server-side sessions |
 | Testing | Vitest | Integration tests over unit tests for route handlers |
 | Local infra | Docker Compose | From day one, not as a later complication |
+| CI | GitHub Actions | Typecheck, lint and tests on every PR, against a Postgres container built from nothing each run |
 
 ---
 

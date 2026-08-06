@@ -16,6 +16,7 @@
 - [x] Онбординг для нового розробника (`docs/ONBOARDING.md`)
 - [x] Навчальний журнал бекенд-концепцій (`docs/LEARNING.md`)
 - [x] Процедура старту нового проєкту (`docs/BOOTSTRAP.md`) — питання, які треба закрити до першої моделі даних (issue #62)
+- [x] GitHub Actions CI (`.github/workflows/ci.yml`) — typecheck + lint + test на кожен PR і на push у `main`, Postgres як service container, міграції через той самий `src/test/global-setup.ts` (issue #22)
 
 ## Фаза 1 — Тиждень 3-5: Проєкт 1 — Personal Financial Tracker API
 
@@ -40,7 +41,8 @@
 ## Заплановано, роботу не почато
 
 - [ ] `external_id` / `external_source` в `accounts` (окрема міграція)
-- [ ] GitHub Actions CI (typecheck + lint + test) — **не заблоковано**: тести є з 2026-07-28, умову «коли з'являться перші тести» знято 2026-08-01 (issue #22)
+- [ ] Захист `main` у налаштуваннях GitHub: merge тільки при зеленому CI + repository secret `BETTER_AUTH_SECRET` — робиться руками власником репозиторію, кодом не покривається (issue #22)
+- [ ] Звірити, що версія TypeScript, яку показує LSP агента, збігається з тією, якою `npm run typecheck` користується в CI (issue #22)
 - [ ] Merchants таблиця — Фаза 2
 - [ ] Банківська інтеграція (Monobank/Privat) — Фаза 2
 

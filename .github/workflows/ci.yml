@@ -1,0 +1,81 @@
+name: CI
+
+# Every PR, plus main itself. Main is covered separately from the PR that
+# merged into it because a merge commit is code that no run has ever seen:
+# two PRs, each green on its own, can still break main together.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A newer push to the same PR makes the previous run's answer irrelevant, so
+  # cancel it. Pushes to main are never cancelled — every commit on main keeps
+  # its own status, which is what makes "main was green at commit X" checkable.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # Same major version as docker-compose.yml — CI testing against a
+        # different Postgres than local development is how a green pipeline
+        # starts lying.
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: personal_api
+          POSTGRES_PASSWORD: personal_api_password
+          POSTGRES_DB: personal_api
+        ports:
+          - 5432:5432
+        # Without this the steps below start the moment the container exists,
+        # which is earlier than the moment Postgres accepts connections.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # personal_api_test does not exist yet: src/test/global-setup.ts creates
+      # it, applies the migrations and truncates it, exactly as it does locally.
+      # That is the point — no CI-specific branch in the test bootstrap.
+      #
+      # DATABASE_URL is deliberately NOT set here. src/test/env-setup.ts derives
+      # it from TEST_DATABASE_URL, and global-setup.ts refuses to run when the
+      # two point at the same database (a guard against wiping the dev database
+      # by copy-paste). Setting it here would trip that guard on every run.
+      TEST_DATABASE_URL: postgresql://personal_api:personal_api_password@localhost:5432/personal_api_test
+      # Read by src/lib/auth.ts's Zod schema at import time; the tests never
+      # dereference the URL, they only need it to be a valid one.
+      BETTER_AUTH_URL: http://localhost:3000
+      # Not a hardcoded literal even though CI signs nothing real: a secret
+      # committed "just for tests" is the one that later gets copied into an
+      # environment where it does matter. Repository secret, set once by hand.
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Quoted so YAML keeps it a version string: a future '24.10' read as
+          # a number would silently become 24.1.
+          node-version: '24'
+          cache: npm
+
+      # ci, not install: fails on a package.json/package-lock.json mismatch
+      # instead of quietly resolving new versions the lockfile never pinned.
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm run lint
+
+      - run: npm test
