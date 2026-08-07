@@ -57,6 +57,9 @@ npm run typecheck
 npm test
 ```
 
+CI runs exactly these three on every PR, so this is not a duplicate check — it
+is the same check, ten minutes earlier.
+
 ## Working With AI Agents
 
 **Understand before moving on.**
@@ -73,4 +76,13 @@ Significant decisions (schema design, auth approach, caching strategy) must be d
 ## Testing
 - Integration tests over unit tests for route handlers
 - Tests live next to the code: `src/routes/users.test.ts`
-- CI (GitHub Actions) running tests on every PR is planned, not wired up yet — see issue #22. Until then, run `npm test` locally before every PR.
+- CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `typecheck`,
+  `lint` and `test` on every PR and on every push to `main`. Tests run against a
+  fresh PostgreSQL service container, so a green run also proves the migrations
+  still apply to an empty database — something a local run against a
+  long-lived dev volume never checks.
+- CI needs one repository secret, `BETTER_AUTH_SECRET` (any string of 32+
+  characters; it signs nothing real there). Without it every run fails at
+  `npm test` on env validation. GitHub does not pass secrets to pull requests
+  opened from forks — that is a known limitation, see `docs/DECISIONS.md` →
+  "`BETTER_AUTH_SECRET` — repository secret, не літерал у workflow".
