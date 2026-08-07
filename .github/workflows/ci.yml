@@ -57,10 +57,17 @@ jobs:
       # Read by src/lib/auth.ts's Zod schema at import time; the tests never
       # dereference the URL, they only need it to be a valid one.
       BETTER_AUTH_URL: http://localhost:3000
-      # Not a hardcoded literal even though CI signs nothing real: a secret
-      # committed "just for tests" is the one that later gets copied into an
-      # environment where it does matter. Repository secret, set once by hand.
-      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      # A literal, deliberately, and not ${{ secrets.* }}. This value protects
+      # nothing: the tests sign nothing real, and src/lib/auth.ts only needs it
+      # to clear a Zod length check at import time. Read from secrets instead,
+      # every run GitHub withholds secrets from fails on "must be at least 32
+      # characters" — a complaint about the value that never mentions the real
+      # cause. Dependabot's own pull requests are exactly that case: they run
+      # against a separate secret store, so the bot that keeps the SHA pins
+      # below from going stale could not produce a green run to review.
+      # Written to be unusable on sight, so it can never become the string
+      # somebody copies into an environment where a secret does matter.
+      BETTER_AUTH_SECRET: ci-only-not-a-real-secret-0000000000000000
 
     steps:
       # Pinned to a commit SHA rather than a tag: a tag can be moved, and a
