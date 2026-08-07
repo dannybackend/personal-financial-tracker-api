@@ -18,7 +18,7 @@
 ## Stack
 
 - Runtime: Node.js 24+
-- Language: TypeScript 5+ (strict mode, no exceptions)
+- Language: TypeScript 6+ (strict mode, no exceptions)
 - Framework: Hono
 - ORM: Drizzle ORM (no raw SQL unless absolutely necessary)
 - Database: PostgreSQL

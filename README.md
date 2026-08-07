@@ -67,7 +67,7 @@ flowchart LR
 | Layer | Choice | Why |
 |---|---|---|
 | Runtime | Node.js 24 | LTS, native APIs replace dependencies |
-| Language | TypeScript 5, strict | No `any`, explicit return types on exports |
+| Language | TypeScript 6, strict | No `any`, explicit return types on exports |
 | Framework | Hono | Minimal — every decision stays visible instead of hidden in framework magic |
 | ORM | Drizzle | Type-safe and SQL-shaped; forces thinking in SQL rather than around it |
 | Database | PostgreSQL | Industry standard |
