@@ -81,8 +81,11 @@ Significant decisions (schema design, auth approach, caching strategy) must be d
   fresh PostgreSQL service container, so a green run also proves the migrations
   still apply to an empty database — something a local run against a
   long-lived dev volume never checks.
-- CI needs one repository secret, `BETTER_AUTH_SECRET` (any string of 32+
-  characters; it signs nothing real there). Without it every run fails at
-  `npm test` on env validation. GitHub does not pass secrets to pull requests
-  opened from forks — that is a known limitation, see `docs/DECISIONS.md` →
-  "`BETTER_AUTH_SECRET` — repository secret, не літерал у workflow".
+- CI needs no repository secret. `BETTER_AUTH_SECRET` is a literal in the
+  workflow (32+ characters, signing nothing real), because a `secrets.*`
+  reference comes back empty in every run GitHub withholds secrets from — pull
+  requests from forks, and pull requests opened by Dependabot. Those runs then
+  fail on the secret's *length*, an error that never mentions the missing
+  delivery. See `docs/DECISIONS.md` → "Уточнення: `BETTER_AUTH_SECRET` у CI —
+  таки літерал". Do not "restore" it to a secret without reading that entry:
+  it reverses an acceptance criterion of issue #22 on purpose.
