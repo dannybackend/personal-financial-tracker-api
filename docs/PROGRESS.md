@@ -30,9 +30,14 @@
 - [x] Реєстрація — через Better Auth (`/api/auth/sign-up/email`), без кастомного `/api/auth/register` (див. `docs/DECISIONS.md`, issue #8 закрито як not planned)
 - [x] Endpoint логіну — через Better Auth (`/api/auth/sign-in/email`), без кастомного endpoint, симетрично з реєстрацією (див. `docs/DECISIONS.md`, issue #9)
 - [x] CRUD: accounts — Zod-схеми, 5 endpoints, scoped через спільний auth middleware (issues #11, #30)
+- [x] Мультивалютність: `char(3)` ISO-4217 + `CHECK`, `currencySchema` в `src/lib/currency.ts`, `budgets.currency`, валюта рахунку незмінна після створення (issue #36)
 - [ ] CRUD: categories
 - [ ] CRUD: transactions
-- [ ] CRUD: budgets
+- [ ] CRUD: budgets — маршрут має валідувати `currency` через `currencySchema`
+      з `src/lib/currency.ts`, не власним регексом. `budgets.currency` у схемі
+      захищена лише CHECK на форму (`^[A-Z]{3}$`), не на список підтримуваних
+      кодів — інакше бюджет може лягти у валюту, яку жоден рахунок тримати не
+      може (issue #36, знайдено при ревʼю)
 - [ ] Zod валідація на всіх endpoints
 - [x] Інтеграційні тести (Vitest) — окрема тестова база, `src/app.test.ts` покриває реєстрацію/логін (issue #10), `src/routes/accounts.test.ts` покриває accounts CRUD (issue #12); категорії/транзакції/бюджети отримають власні тести по мірі реалізації (#14, #17, #19)
 - [ ] Rate limiting через Redis

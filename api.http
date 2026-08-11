@@ -101,5 +101,13 @@ Content-Type: application/json
   "name": "Renamed Card"
 }
 
+### Accounts: currency is immutable after creation — replace with a real id (expect 422)
+PATCH {{baseUrl}}/accounts/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "currency": "EUR"
+}
+
 ### Accounts: delete — replace with a real id (expect 204, no body)
 DELETE {{baseUrl}}/accounts/e691a354-7e82-4e01-9baf-6c96e0119cb5

@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { sql } from 'drizzle-orm';
 import { app } from '../app.js';
 import { registerAndLogin } from '../test/auth-helpers.js';
+import { currencySchema, SUPPORTED_CURRENCIES } from '../lib/currency.js';
+import { db } from '../db/db.js';
+import { accounts } from '../db/schema.js';
 
 const BASE_URL = 'http://localhost/accounts';
 
@@ -10,7 +14,7 @@ const accountSchema = z.object({
   userId: z.string(),
   name: z.string(),
   type: z.enum(['cash', 'card', 'deposit']),
-  currency: z.string(),
+  currency: currencySchema,
   createdAt: z.string(),
 });
 
@@ -75,6 +79,61 @@ describe('POST /accounts', () => {
     }));
 
     expect(res.status).toBe(400);
+  });
+
+  it('accepts every currency in the supported list, not just USD', async () => {
+    const cookie = await registerAndLogin('accounts-every-currency@example.com');
+
+    for (const currency of SUPPORTED_CURRENCIES) {
+      const res = await app.request(authedRequest('POST', BASE_URL, cookie, { name: 'Cash', type: 'cash', currency }));
+
+      expect(res.status).toBe(201);
+      const account = accountSchema.parse(await res.json());
+      expect(account.currency).toBe(currency);
+    }
+  });
+
+  it('rejects a currency that bypasses Zod, via the database CHECK constraint', async () => {
+    const cookie = await registerAndLogin('accounts-check-constraint@example.com');
+    const created = accountSchema.parse(
+      await (await app.request(authedRequest('POST', BASE_URL, cookie, validAccount))).json(),
+    );
+
+    // Goes straight to the DB, past the route, past Zod, and past the
+    // `.$type<Currency>()` narrowing on the column too - `sql\`'us'\`` is how
+    // a hand-written SQL script or a data-migration would write this, and
+    // none of those go through TypeScript either. The only thing standing
+    // between this and a corrupted row is the `accounts_currency_iso4217`
+    // CHECK constraint from src/db/schema.ts.
+    await expect(
+      db.insert(accounts).values({ userId: created.userId, name: 'Cash', type: 'cash', currency: sql`'us'` }),
+    ).rejects.toThrow();
+  });
+
+  it('returns 422 for a lowercase currency code - case is not normalized', async () => {
+    const cookie = await registerAndLogin('accounts-currency-lowercase@example.com');
+
+    const res = await app.request(authedRequest('POST', BASE_URL, cookie, { name: 'Cash', type: 'cash', currency: 'usd' }));
+
+    expect(res.status).toBe(422);
+  });
+
+  it('returns 422 for a currency that is not free text', async () => {
+    const cookie = await registerAndLogin('accounts-currency-freetext@example.com');
+
+    const symbols = await app.request(authedRequest('POST', BASE_URL, cookie, { name: 'Cash', type: 'cash', currency: '$$$' }));
+    const word = await app.request(authedRequest('POST', BASE_URL, cookie, { name: 'Cash', type: 'cash', currency: 'гривня' }));
+
+    expect(symbols.status).toBe(422);
+    expect(word.status).toBe(422);
+  });
+
+  it('returns 422 for a well-formed but unsupported ISO-4217 code', async () => {
+    const cookie = await registerAndLogin('accounts-currency-unsupported@example.com');
+
+    const res = await app.request(authedRequest('POST', BASE_URL, cookie, { name: 'Cash', type: 'cash', currency: 'BTC' }));
+
+    expect(res.status).toBe(422);
   });
 });
 
@@ -180,6 +239,17 @@ describe('PATCH /accounts/:id', () => {
     const cookie = await registerAndLogin('accounts-patch-invalid-id@example.com');
 
     const res = await app.request(authedRequest('PATCH', `${BASE_URL}/not-a-uuid`, cookie, { name: 'x' }));
+
+    expect(res.status).toBe(422);
+  });
+
+  it('returns 422 for currency in the body - an account\'s currency is immutable', async () => {
+    const cookie = await registerAndLogin('accounts-patch-currency@example.com');
+    const created = accountSchema.parse(
+      await (await app.request(authedRequest('POST', BASE_URL, cookie, validAccount))).json(),
+    );
+
+    const res = await app.request(authedRequest('PATCH', `${BASE_URL}/${created.id}`, cookie, { currency: 'EUR' }));
 
     expect(res.status).toBe(422);
   });

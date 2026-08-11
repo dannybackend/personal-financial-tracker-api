@@ -60,3 +60,8 @@ Measured on PR #59 rather than assumed:
 the pending changes on the branch. Running them before pushing means
 CodeRabbit reviews an already-cleaned diff, which matters while the account
 is on a rate-limited plan.
+
+`/code-review` findings go through `discuss-comments` (triage the findings,
+decide fix-or-skip) and then `implement-comments` (apply what was accepted).
+CodeRabbit comments are handled directly, per the section above — they arrive
+one at a time on an open PR and need no triage pass.

@@ -151,11 +151,25 @@ Balances are always computed, never stored. See `docs/DECISIONS.md` → "Бал�
 
 ## 6. Currency
 
-- `char(3)`, uppercase ISO-4217, validated against a shared Zod enum in
-  `src/lib/`. Not free text.
+- `char(3)`, uppercase ISO-4217, validated against the shared Zod enum in
+  `src/lib/currency.ts` (`currencySchema`). Not free text.
+- Two independent layers, on purpose: the database `CHECK` constraint enforces
+  only the *shape* (`^[A-Z]{3}$`) — it exists so nothing can bypass Zod and
+  write garbage directly. `currencySchema` enforces the *set* of codes this
+  API actually accepts. Adding a currency is a one-line change to the enum,
+  never a migration.
+- Case is not normalized. `"usd"` is `422`, not silently upper-cased — what the
+  client sent always matches what gets stored and returned.
 - Currency lives on the **account**. A transaction inherits its account's
   currency and never carries its own.
 - A budget carries its own currency explicitly.
+- An account's currency is **immutable** after creation — `PATCH /accounts/:id`
+  rejects a `currency` field with `422` rather than ignoring it. See
+  `docs/DECISIONS.md` → "Уточнення: валюта рахунку незмінна після створення".
+  Unlike the format check above, this immutability is enforced only at this
+  HTTP boundary, deliberately — no database-level guard (e.g. a trigger)
+  backs it. See `docs/DECISIONS.md` → "Уточнення: незмінність валюти рахунку
+  — лише на рівні застосунку, свідомо" for why.
 
 ### Aggregation rule
 
