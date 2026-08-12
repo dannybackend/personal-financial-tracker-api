@@ -22,7 +22,10 @@ and edits made by a subagent are not restored by `/rewind`.
 Execute the **Робимо** and **Робимо інакше** buckets from the plan above,
 exactly as written. Do not:
 
-- do anything from **Не робимо**, however small
+- do anything from **Не робимо**, however small — with one exception: when the
+  plan calls for a `docs/PROGRESS.md` entry recording that a **Не робимо**
+  item is deferred rather than dropped, add that entry. Writing the entry is
+  not doing the deferred work; leave the work itself untouched.
 - apply the reviewer's original suggestion where the plan chose a different
   fix — the difference is the decision
 - fix anything the review found but the plan left out; if something looks
@@ -39,7 +42,32 @@ JSDoc on exported functions. The `doc-rules` hook fires on edits to
 than batching documentation to the end.
 
 An item that adds a deferred follow-up to `docs/PROGRESS.md` is part of the
-plan, not bookkeeping to skip.
+plan, not bookkeeping to skip — this is the same exception named above,
+restated because it is easy to read "do nothing from Не робимо" too literally
+and skip the entry along with the work.
+
+## Replies, when the plan came from `/discuss-rabbit`
+
+A plan built from CodeRabbit comments carries drafted replies marked
+`відповідь після виправлення`. Post each one **after** its fix is applied and
+the suite is green — the reply describes work that exists, so posting it
+before the fix makes it false.
+
+```bash
+gh api --method POST \
+  "repos/{owner}/{repo}/pulls/{pr}/comments/{comment_id}/replies" \
+  -f body="$(cat <<'EOF'
+<the drafted text>
+EOF
+)"
+```
+
+Post the text as drafted. If applying the fix changed what is true — a
+different approach, a follow-up that turned out unnecessary — say so in the
+final report and leave that reply unposted rather than rewriting it here; the
+user approved specific wording. Never resolve a thread (`pr-workflow`).
+
+A plan from `/discuss-comments` has no replies in it; skip this section.
 
 ## Finishing
 

@@ -63,5 +63,6 @@ is on a rate-limited plan.
 
 `/code-review` findings go through `discuss-comments` (triage the findings,
 decide fix-or-skip) and then `implement-comments` (apply what was accepted).
-CodeRabbit comments are handled directly, per the section above — they arrive
-one at a time on an open PR and need no triage pass.
+CodeRabbit comments have their own front end, `discuss-rabbit`, which fetches
+them, applies the reply rule above per comment, posts the disagreements
+immediately, and feeds the same `implement-comments`.

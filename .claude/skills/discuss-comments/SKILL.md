@@ -43,7 +43,7 @@ and for each one give, in this order:
 End the turn with the triaged list in three buckets, in the user's language,
 each item naming the file it touches:
 
-```
+```text
 ## Робимо        — verbatim, in the order they should be applied
 ## Робимо інакше — what instead, and why the original was rejected
 ## Не робимо     — with the reason it was declined
