@@ -40,18 +40,34 @@ reply is the one outward action this skill takes, and only per the gate below.
 
 ## Fetching
 
-Resolve the PR from `$ARGUMENTS`, or from the current branch when it is empty:
+Resolve the PR from `$ARGUMENTS` when non-empty, otherwise from the current
+branch, and keep both `pr` and `repo` as shell variables — every later `gh`
+call in this skill uses them, never a literal placeholder:
 
 ```bash
-gh pr view --json number,headRefName,url
+pr=$(gh pr view ${ARGUMENTS:+"$ARGUMENTS"} --json number --jq .number)
+repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 ```
 
 Then pull the inline review comments — these are what CodeRabbit leaves on
-specific lines, and they are not what `gh pr view --comments` returns:
+specific lines, and they are not what `gh pr view --comments` returns. Strip
+the `<details>` wrapper and HTML comments before capping the length: the
+summary CodeRabbit shows by default is the severity/effort line, and the
+actual finding is what's collapsed inside `<details>` — a raw prefix cut
+returns that summary line and nothing else. `.[0:3000]` is a ceiling for a
+single outsized comment (embedded code, a diff, an image), not a length that
+routinely truncates - every comment on this PR's own findings fit in
+315–1052 characters once the wrapper is gone:
 
 ```bash
-gh api "repos/{owner}/{repo}/pulls/{pr}/comments" --paginate \
-  --jq '.[] | {id, path, line, body: .body[0:400]}'
+gh api "repos/$repo/pulls/$pr/comments" --paginate --jq '.[] |
+  "===== id=\(.id) | \(.path):\(.line) =====\n" +
+  (.body
+   | gsub("(?s)<details>.*?</details>"; "")
+   | gsub("(?s)<!--.*?-->"; "")
+   | gsub("</?details>|</?summary>"; "")
+   | gsub("\n{2,}"; "\n")
+   | .[0:3000])'
 ```
 
 Read the file around each comment's `path:line` before judging it. A comment
@@ -82,8 +98,9 @@ waits for `/implement-comments` to post it once that work is done. Nothing
 else goes to GitHub from here.
 
 ```bash
+comment_id=<id from the Fetching listing above>
 gh api --method POST \
-  "repos/{owner}/{repo}/pulls/{pr}/comments/{comment_id}/replies" \
+  "repos/$repo/pulls/$pr/comments/$comment_id/replies" \
   -f body="$(cat <<'EOF'
 <the approved text>
 EOF
