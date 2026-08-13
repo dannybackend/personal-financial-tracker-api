@@ -40,19 +40,27 @@ reply is the one outward action this skill takes, and only per the gate below.
 
 ## Fetching
 
-Resolve the PR from `$ARGUMENTS` when non-empty, otherwise from the current
-branch, and keep both `pr` and `repo` as shell variables — every later `gh`
-call in this skill uses them, never a literal placeholder:
+Resolve `owner`, `name`, and `pr` from the URL of the *resolved* PR — never
+from `gh repo view`, which reads the current working copy's remote and can
+name a different repository than the PR `$ARGUMENTS` actually pointed at:
 
 ```bash
-pr=$(gh pr view ${ARGUMENTS:+"$ARGUMENTS"} --json number --jq .number)
-repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+pr=$(gh pr view ${ARGUMENTS:+"$ARGUMENTS"} --json url --jq '.url | capture("pull/(?<n>[0-9]+)").n')
+owner=$(gh pr view ${ARGUMENTS:+"$ARGUMENTS"} --json url --jq '.url | capture("github[.]com/(?<o>[^/]+)/").o')
+name=$(gh pr view ${ARGUMENTS:+"$ARGUMENTS"} --json url --jq '.url | capture("github[.]com/[^/]+/(?<n>[^/]+)/pull").n')
 ```
 
-Then pull the inline review comments — these are what CodeRabbit leaves on
-specific lines, and they are not what `gh pr view --comments` returns. Strip
-the `<details>` wrapper and HTML comments before capping the length: the
-summary CodeRabbit shows by default is the severity/effort line, and the
+Then pull review threads via GraphQL, not the REST comments endpoint — REST
+returns every inline comment ever posted, including this skill's own replies
+and anything already resolved, with no `isResolved` field to tell them apart.
+GraphQL's `reviewThreads` carries resolution state and groups replies under
+their thread, so filtering to `isResolved: false` and each thread's first
+comment (the top-level one — a reply can't be the target of a new reply
+anyway) does in one call what REST needs a second, unfilterable call plus
+manual bookkeeping to approximate. `originalLine` is included as a fallback
+for a comment left on a line since deleted, where `line` comes back null.
+Strip the `<details>` wrapper and HTML comments before capping the length:
+the summary CodeRabbit shows by default is the severity/effort line, and the
 actual finding is what's collapsed inside `<details>` — a raw prefix cut
 returns that summary line and nothing else. `.[0:3000]` is a ceiling for a
 single outsized comment (embedded code, a diff, an image), not a length that
@@ -60,14 +68,31 @@ routinely truncates - every comment on this PR's own findings fit in
 315–1052 characters once the wrapper is gone:
 
 ```bash
-gh api "repos/$repo/pulls/$pr/comments" --paginate --jq '.[] |
-  "===== id=\(.id) | \(.path):\(.line) =====\n" +
-  (.body
-   | gsub("(?s)<details>.*?</details>"; "")
-   | gsub("(?s)<!--.*?-->"; "")
-   | gsub("</?details>|</?summary>"; "")
-   | gsub("\n{2,}"; "\n")
-   | .[0:3000])'
+gh api graphql -f query='
+query($owner:String!, $name:String!, $pr:Int!) {
+  repository(owner:$owner, name:$name) {
+    pullRequest(number:$pr) {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          comments(first: 1) {
+            nodes { databaseId path line originalLine author { login } body }
+          }
+        }
+      }
+    }
+  }
+}' -F owner="$owner" -F name="$name" -F pr="$pr" --jq '
+  .data.repository.pullRequest.reviewThreads.nodes[]
+  | select(.isResolved==false)
+  | .comments.nodes[0] as $c
+  | select($c.author.login=="coderabbitai")
+  | "===== id=" + ($c.databaseId|tostring) + " | " + $c.path + ":" + (($c.line // $c.originalLine // 0)|tostring) + " =====\n"
+    + ($c.body
+       | gsub("(?s)<details>.*?</details>"; "")
+       | gsub("(?s)<!--.*?-->"; "")
+       | gsub("\n{2,}"; "\n")
+       | .[0:3000])'
 ```
 
 Read the file around each comment's `path:line` before judging it. A comment
@@ -100,7 +125,7 @@ else goes to GitHub from here.
 ```bash
 comment_id=<id from the Fetching listing above>
 gh api --method POST \
-  "repos/$repo/pulls/$pr/comments/$comment_id/replies" \
+  "repos/$owner/$name/pulls/$pr/comments/$comment_id/replies" \
   -f body="$(cat <<'EOF'
 <the approved text>
 EOF
