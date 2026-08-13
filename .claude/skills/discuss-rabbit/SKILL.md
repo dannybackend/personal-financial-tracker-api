@@ -59,6 +59,9 @@ comment (the top-level one — a reply can't be the target of a new reply
 anyway) does in one call what REST needs a second, unfilterable call plus
 manual bookkeeping to approximate. `originalLine` is included as a fallback
 for a comment left on a line since deleted, where `line` comes back null.
+`fullDatabaseId`, not `databaseId`: the latter is gone from the schema (it
+still executes on a grace period, but introspection no longer lists it) and
+returns `BigInt`, so it arrives as a string and needs no `tostring`.
 Strip the `<details>` wrapper and HTML comments before capping the length:
 the summary CodeRabbit shows by default is the severity/effort line, and the
 actual finding is what's collapsed inside `<details>` — a raw prefix cut
@@ -73,27 +76,37 @@ query($owner:String!, $name:String!, $pr:Int!) {
   repository(owner:$owner, name:$name) {
     pullRequest(number:$pr) {
       reviewThreads(first: 100) {
+        pageInfo { hasNextPage endCursor }
         nodes {
           isResolved
           comments(first: 1) {
-            nodes { databaseId path line originalLine author { login } body }
+            nodes { fullDatabaseId path line originalLine author { login } body }
           }
         }
       }
     }
   }
 }' -F owner="$owner" -F name="$name" -F pr="$pr" --jq '
-  .data.repository.pullRequest.reviewThreads.nodes[]
-  | select(.isResolved==false)
-  | .comments.nodes[0] as $c
-  | select($c.author.login=="coderabbitai")
-  | "===== id=" + ($c.databaseId|tostring) + " | " + $c.path + ":" + (($c.line // $c.originalLine // 0)|tostring) + " =====\n"
-    + ($c.body
-       | gsub("(?s)<details>.*?</details>"; "")
-       | gsub("(?s)<!--.*?-->"; "")
-       | gsub("\n{2,}"; "\n")
-       | .[0:3000])'
+  .data.repository.pullRequest.reviewThreads as $t
+  | (if $t.pageInfo.hasNextPage
+     then "WARNING: more than 100 review threads; re-run with after: \"" + $t.pageInfo.endCursor + "\" to get the rest\n"
+     else empty end),
+    ($t.nodes[]
+     | select(.isResolved==false)
+     | .comments.nodes[0] as $c
+     | select($c.author.login=="coderabbitai")
+     | "===== id=" + $c.fullDatabaseId + " | " + $c.path + ":" + (($c.line // $c.originalLine // 0)|tostring) + " =====\n"
+       + ($c.body
+          | gsub("(?s)<details>.*?</details>"; "")
+          | gsub("(?s)<!--.*?-->"; "")
+          | gsub("\n{2,}"; "\n")
+          | .[0:3000]))'
 ```
+
+100 is the per-page maximum GitHub allows for this connection, so the
+`hasNextPage` guard is how a PR past that many threads announces itself
+instead of silently triaging a prefix — add `after: $cursor` to the query
+and repeat if it ever fires.
 
 Read the file around each comment's `path:line` before judging it. A comment
 quoted without its surrounding code is a claim you cannot check.
