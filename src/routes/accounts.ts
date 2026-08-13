@@ -5,19 +5,27 @@ import { db } from '../db/db.js';
 import { accounts } from '../db/schema.js';
 import { requireAuth, type AuthEnv } from '../middleware/auth.js';
 import { parseBody, parseParam } from '../lib/validation.js';
+import { currencySchema } from '../lib/currency.js';
 
 const idParamSchema = z.uuid();
 
-const createAccountSchema = z.object({
+const createAccountSchema = z.strictObject({
   name: z.string().min(1).max(255),
   type: z.enum(['cash', 'card', 'deposit']),
-  currency: z.string().min(1).max(10),
+  currency: currencySchema,
 });
 
-const updateAccountSchema = createAccountSchema.partial().refine(
-  (data) => Object.keys(data).length > 0,
-  { message: 'At least one field must be provided' },
-);
+// `currency` is deliberately absent, not just optional: an account's currency
+// is immutable after creation (see docs/DECISIONS.md - out of scope in #36).
+// `z.strictObject`, not the default `z.object`, so sending `currency` in a
+// PATCH body fails loudly with 422 instead of being silently dropped.
+const updateAccountSchema = z
+  .strictObject(createAccountSchema.omit({ currency: true }).shape)
+  .partial()
+  .refine(
+    (data) => Object.keys(data).length > 0,
+    { message: 'At least one field must be provided' },
+  );
 
 export const accountsRoute = new Hono<AuthEnv>();
 

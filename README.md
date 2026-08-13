@@ -27,9 +27,9 @@ reasoning and its rejected alternatives in [`docs/DECISIONS.md`](docs/DECISIONS.
 
 **Next**
 
-Schema hardening (currency model, amount-sign invariants, calendar dates,
-soft delete), then categories, transactions and budgets, then the aggregation
-endpoints — balances, spending by category, cashflow, budget progress.
+Schema hardening (amount-sign invariants, calendar dates, soft delete), then
+categories, transactions and budgets, then the aggregation endpoints —
+balances, spending by category, cashflow, budget progress.
 Live backlog: [GitHub Issues](../../issues) grouped into milestones.
 
 Not yet: deployment, OpenAPI docs.
@@ -99,6 +99,11 @@ Notable properties:
 - **Deleting a category never deletes transaction history** — it leaves
   `category_id = null`. Budgets, which are meaningless without a category,
   cascade instead.
+- **Currency is `char(3)` ISO-4217**, gated by both a database `CHECK` and a
+  shared Zod enum, and lives on the account — a transaction inherits it and
+  never carries its own. Any aggregate that sums money across more than one
+  account must group by currency and never mix. An account's currency is
+  immutable after creation.
 
 ---
 
@@ -116,9 +121,9 @@ The full record with reasoning, trade-offs and rejected alternatives is in
 | Balance computed, never stored | Two concurrent writes cannot overwrite each other's result if there is no field to overwrite |
 | Session hook is *not* atomic with user creation | Verified against Better Auth's source: `after` hooks run post-commit by design. The risk is accepted explicitly rather than hidden |
 | Integration tests run against a separate real database | Mocked persistence proves the mock works, not the query |
+| Currency lives on the account, `char(3)` ISO-4217, immutable after creation | A transaction inherits its account's currency; a single base currency per user doesn't match a real user of this tracker (UAH card + USD deposit at once) |
 
-Decided and pending implementation: ISO-4217 currency per account with
-aggregates never mixing currencies, positive-only amounts with direction from
+Decided and pending implementation: positive-only amounts with direction from
 `type`, calendar dates for transactions, soft-deleted accounts, budgets
 anchored to an explicit `period_start` with per-period uniqueness, and
 transfers as two linked rows. See the *Schema Hardening* milestone.
