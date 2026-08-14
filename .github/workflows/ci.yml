@@ -19,6 +19,39 @@ permissions:
   contents: read
 
 jobs:
+  # Separate from `ci` on purpose: this needs no database and no dependency
+  # install, so a docs-only pull request learns its markers are stale in
+  # seconds instead of waiting on Postgres and the test suite.
+  markers:
+    runs-on: ubuntu-latest
+
+    # A fork does not inherit the upstream issue list, so every marker would
+    # resolve to "does not exist" and the job would fail wholesale on a fork's
+    # own pushes. Pull requests aimed back here are unaffected — those run in
+    # this repository's context, where the issues live.
+    if: ${{ !github.event.repository.fork }}
+
+    permissions:
+      contents: read
+      # The only job that reads issue state. Job-level so the test job below
+      # keeps the narrower workflow default.
+      issues: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      # No `npm ci`: the script imports nothing outside node: builtins, which
+      # is what keeps this job to a few seconds.
+      - run: npm run check:markers
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   ci:
     runs-on: ubuntu-latest
 
