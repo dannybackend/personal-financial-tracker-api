@@ -41,13 +41,20 @@ async function scratchDoc(contents) {
  * @returns {Promise<{ code: number, stdout: string, stderr: string }>} outcome
  */
 async function runCli(docPath) {
+  // Credentials are stripped deliberately: a document with no debt markers
+  // reaches no network, so it must run without a token at all. Leaving the
+  // parent's token in place would hide a regression that reinstates the
+  // check before the empty-markers short-circuit.
+  /** @type {NodeJS.ProcessEnv} */
+  const env = { ...process.env, GITHUB_REPOSITORY: 'owner/name' };
+  delete env.GITHUB_TOKEN;
+  delete env.GH_TOKEN;
+
   try {
     const { stdout, stderr } = await promisify(execFile)(
       process.execPath,
       [SCRIPT, docPath],
-      // A fixture with no debt markers reaches no network, so the token only
-      // has to exist. GITHUB_REPOSITORY spares the child a git subprocess.
-      { env: { ...process.env, GITHUB_TOKEN: 'not-used-offline', GITHUB_REPOSITORY: 'owner/name' } },
+      { env },
     );
     return { code: 0, stdout, stderr };
   } catch (cause) {

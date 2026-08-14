@@ -32,6 +32,9 @@ import { pathToFileURL } from 'node:url';
 
 const DEFAULT_DOC_PATH = 'docs/API-CONVENTIONS.md';
 
+/** One GraphQL round trip; generous for an API call, short of a hung job. */
+const REQUEST_TIMEOUT_MS = 15_000;
+
 /**
  * The marker forms the legend defines. Anything else at the top of a section
  * is a marker nobody agreed on, and this script would rather fail than guess.
@@ -241,6 +244,10 @@ export async function resolveIssues(numbers, repo, token) {
         'content-type': 'application/json',
       },
       body: JSON.stringify({ query, variables: { owner: repo.owner, name: repo.name } }),
+      // Without a deadline a stalled connection holds the CI job open until
+      // the runner's own limit; the abort surfaces through the catch below as
+      // an ordinary reported problem.
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!response.ok) return { states: new Map(), error: `GitHub API returned ${response.status}` };
@@ -283,15 +290,6 @@ export async function run(docPath = DEFAULT_DOC_PATH) {
   /** @type {string[]} */
   const problems = [];
 
-  const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
-  if (!token) {
-    problems.push(
-      'GITHUB_TOKEN (or GH_TOKEN) is not set — CI supplies it; for a local run see ' +
-      'docs/ONBOARDING.md → "Корисні команди"',
-    );
-    return report(docPath, problems, 0);
-  }
-
   /** @type {string} */
   let source;
   try {
@@ -314,11 +312,20 @@ export async function run(docPath = DEFAULT_DOC_PATH) {
     return report(docPath, problems, 0);
   }
 
-  // Nothing to ask the API about, so nothing to resolve: a document carrying
-  // only ✅ markers must not fail because it was checked from outside a git
-  // work tree.
+  // Nothing to ask the API about, so neither a token nor a repository is
+  // needed: a document carrying only ✅ markers must not fail because it was
+  // checked without credentials, or from outside a git work tree.
   const numbers = [...debts.keys()];
   if (numbers.length === 0) return report(docPath, problems, 0);
+
+  const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
+  if (!token) {
+    problems.push(
+      'GITHUB_TOKEN (or GH_TOKEN) is not set — CI supplies it; for a local run see ' +
+      'docs/ONBOARDING.md → "Корисні команди"',
+    );
+    return report(docPath, problems, 0);
+  }
 
   /** @type {{ owner: string, name: string }} */
   let repo;

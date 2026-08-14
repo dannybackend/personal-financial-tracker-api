@@ -8,7 +8,7 @@
 ## Фаза 1 — Тиждень 1-2: Середовище і орієнтація
 
 - [x] Docker Desktop (all-users install) + `docker-compose.yml` (PostgreSQL + Redis)
-- [x] Node.js 24, TypeScript 5 (strict mode), ESLint
+- [x] Node.js 24, TypeScript 6 (strict mode), ESLint
 - [x] Hono сервер запускається (`npm run dev`)
 - [x] AGENTS.md (SSOT) + CLAUDE.md, .cursor/rules/, .agents/rules/ (імпорт AGENTS.md) + CONTRIBUTING.md — конфіги Cursor/Antigravity згодом видалені разом із issue #60
 - [x] Розділення AGENTS.md: завжди-контекст лишився, ситуативні правила — в `.claude/skills/`, документаційні тригери — в `.claude/hooks/` (issue #60)

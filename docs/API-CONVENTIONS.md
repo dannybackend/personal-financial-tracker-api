@@ -59,6 +59,10 @@ the codebase is the wrong place to learn it from. Rationale:
 Each row states the **rule**, not the state of the code. Whether the codebase
 already satisfies it is the section's marker, not this table.
 
+Every row is scoped to handlers this project owns. `/api/auth/*` is mounted
+straight onto Better Auth and is exempt from all of them by decision — status
+codes and error shape included. See §2 before applying any row to those paths.
+
 | § | Topic | The rule in one line |
 |---|---|---|
 | [1](#1-ownership-the-rule-that-fks-do-not-enforce) | Ownership | Every id in a body is verified to belong to the caller |

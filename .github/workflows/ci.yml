@@ -23,6 +23,7 @@ jobs:
   # install, so a docs-only pull request learns its markers are stale in
   # seconds instead of waiting on Postgres and the test suite.
   markers:
+    name: Conformance markers
     runs-on: ubuntu-latest
 
     # A fork does not inherit the upstream issue list, so every marker would
@@ -32,6 +33,7 @@ jobs:
     if: ${{ !github.event.repository.fork }}
 
     permissions:
+      # Checkout only; this job never writes to the repository.
       contents: read
       # The only job that reads issue state. Job-level so the test job below
       # keeps the narrower workflow default.
