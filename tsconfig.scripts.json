@@ -25,5 +25,34 @@
     "checkJs": true,
     "noEmit": true
   },
-  "include": ["scripts/**/*", ".claude/hooks/**/*"]
+  // The root config files are here for the same reason `.claude/hooks/**` is:
+  // they configure this repository and no `tsc` invocation was reading them.
+  // The application config is pinned to `src/**/*`, this one covered only the
+  // two tooling directories, and between them `drizzle.config.ts` — which
+  // parses env with Zod and names the schema sources a migration is generated
+  // from — was never type checked at all. Neither was `vitest.config.ts`,
+  // which decides what `npm test` runs.
+  //
+  // Two of the three are TypeScript; `eslint.config.js` is not, and it is the
+  // reason the paragraph above says "configure this repository" rather than
+  // "are TypeScript". It reaches the program through the same allowJs/checkJs
+  // pair as `scripts/` and `.claude/hooks/`, which widens the "plain
+  // JavaScript" exception to a file outside both directories the original
+  // decision named. That widening is itself recorded — docs/DECISIONS.md →
+  // "Перевірка шляхів у конфігах тулінгу" — so this include list stays
+  // explainable by a decision rather than by whoever edited it last.
+  //
+  // Listed as three explicit files, not a glob: the repository root also holds
+  // `docker-compose.yml` and dotfiles, and a pattern loose enough to catch
+  // future config would catch whatever else lands beside them. The cost of an
+  // explicit list is that it drifts silently when a fourth config lands, so
+  // `npm run check:config-paths` fails the build when a root `*.config.*` file
+  // is in neither tsconfig.
+  "include": [
+    "scripts/**/*",
+    ".claude/hooks/**/*",
+    "drizzle.config.ts",
+    "vitest.config.ts",
+    "eslint.config.js"
+  ]
 }

@@ -17,5 +17,79 @@ reviews:
       instructions: "Enforce strict TypeScript: no any, explicit return types on exported functions, named exports only, and descriptive variable names."
     - path: "src/**"
       instructions: "Check that secrets, passwords, tokens, and PII are never logged or returned in responses."
-    - path: "src/config/**"
+    # Env validation lives in three unrelated places, so this is three entries
+    # rather than one glob: `src/db/db.ts`, `src/lib/**` and the root
+    # `drizzle.config.ts` share no common prefix, and brace expansion
+    # (`{a,b}`) is not documented as supported here — an unsupported pattern
+    # would fail the same silent way the one it replaces already did.
+    #
+    # This said `src/config/**` from the file's first commit. That directory
+    # has never existed, so the most security-relevant instruction in this
+    # config matched no file in any review it should have run in.
+    #
+    # That name survives here as history, and it is only history because
+    # `scripts/check-config-paths.mjs` strips comments before looking for
+    # patterns. The comment text in this file is therefore load-bearing for
+    # that script: rewriting this block as a YAML block scalar, or letting a
+    # formatter unwrap it, would turn documentation into an entry the check
+    # then fails on — an error about a pattern nobody wrote. Keep the history
+    # in `#` comments.
+    #
+    # `src/lib/**` and not `src/lib/auth.ts`: issue #53 moves startup env
+    # validation into `src/lib/env.ts`, and a directory glob survives that
+    # move instead of going stale a second time. The accepted cost is that
+    # `currency.ts` and `validation.ts` read no env and still draw the
+    # instruction — reviewer attention on a question their file cannot answer.
+    # Narrowing to the one file that qualifies today buys silence on two files
+    # and a stale pointer after #53; this way round the staleness is at least
+    # caught by `npm run check:config-paths`.
+    #
+    # The three `instructions` strings below are one rule written three times.
+    # YAML anchors would say it once, but whether CodeRabbit's parser resolves
+    # them is exactly the kind of undocumented assumption the brace glob was
+    # rejected for. So they stay literal and move together: **edit one, edit
+    # all three**, or the same path set starts reviewing against two standards.
+    - path: "src/lib/**"
       instructions: "Check that environment variables are validated with Zod at startup and secrets are not hardcoded."
+    - path: "src/db/db.ts"
+      instructions: "Check that environment variables are validated with Zod at startup and secrets are not hardcoded."
+    - path: "drizzle.config.ts"
+      instructions: "Check that environment variables are validated with Zod at startup and secrets are not hardcoded."
+
+# What CodeRabbit is allowed to read as project standards. docs/API-CONVENTIONS.md
+# is the reason this key exists here: it holds the binding cross-cutting contract
+# — status codes (no 403, no 409), the body-id ownership check, money, currency,
+# dates, pagination, soft delete, transfers — and it matches none of the patterns
+# CodeRabbit looks for on its own. The only reviewer that reads every pull request
+# was reviewing against general advice while the contract those rules defer to was
+# invisible to it.
+#
+# CLAUDE.md and AGENTS.md are listed even though the documentation describes them
+# as auto-detected, because the published config schema gives this key a default
+# of `[]`. The two statements disagree, and naming all three files is correct
+# under either — the failure this whole change is about is a config that points
+# at nothing and says so to no one.
+#
+# `enabled` is set explicitly for the same reason. The documentation phrases the
+# scan as gated — "when enabled ... CodeRabbit will scan these files" — and does
+# not state the default. Left unset, the entire point of this key could be a
+# silent no-op indistinguishable from success: patterns accepted, files never
+# read, reviews that simply never cite the contract. One line removes the doubt.
+#
+# Every pattern uses the `**/`-prefixed form the documented defaults use, rather
+# than a bare `docs/API-CONVENTIONS.md`. Both should resolve to the same single
+# file here, but only one of the two forms has a documented precedent, and a
+# pattern that matches nothing fails without saying so. `npm run check:config-paths`
+# fails the build if any of them stops matching a tracked file.
+#
+# Patterns CodeRabbit documents but this repository has no file for
+# (`.cursorrules`, copilot-instructions, Windsurf, Cline) are deliberately not
+# carried over: the Cursor config was deleted on purpose
+# (docs/DECISIONS.md → "Claude Code як єдиний підтримуваний інструмент").
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "**/CLAUDE.md"
+      - "**/AGENTS.md"
+      - "**/API-CONVENTIONS.md"

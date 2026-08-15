@@ -369,6 +369,10 @@ export async function run(docPath = DEFAULT_DOC_PATH) {
  * non-Error throw would otherwise print as `undefined` and destroy the only
  * diagnostic the operator had.
  *
+ * Identical to the copy in `check-config-paths.mjs`, and deliberately not
+ * shared — see docs/DECISIONS.md → "Перевірка шляхів у конфігах тулінгу",
+ * which names the third check script as the trigger for extracting it.
+ *
  * @param {unknown} cause - whatever was thrown
  * @returns {string} a printable description
  */
