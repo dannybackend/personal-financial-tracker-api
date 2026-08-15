@@ -37,6 +37,7 @@ npm run lint && npm run typecheck && npm test
 ```
 
 - [ ] All three pass locally
+- [ ] `npm run check:config-paths` passes — CI runs it as its own job. It needs no token and no network, so there is nothing to arrange before running it
 - [ ] `npm run check:markers` passes — CI runs it as its own job, and it needs a GitHub token, which is why it is not in the line above (`docs/ONBOARDING.md` → "Корисні команди")
 
 ## After CodeRabbit reviews

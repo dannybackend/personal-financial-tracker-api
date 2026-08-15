@@ -171,10 +171,16 @@ npm run dev
 npm run lint && npm run typecheck && npm test
 ```
 
-У CI є ще один гейт: `npm run check:markers` звіряє маркери відповідності в
-[`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) зі станом issue, які вони
-називають. Йому потрібен GitHub-токен, тому в рядок вище він не входить — як
-запустити локально, див. [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
+У CI є ще два гейти, кожен окремою джобою:
+
+- `npm run check:markers` — маркери відповідності в
+  [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) досі збігаються зі
+  станом issue, які вони називають. Потребує GitHub-токена, тому в рядок вище
+  не входить — як запустити локально, див.
+  [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
+- `npm run check:config-paths` — шляхи, названі в конфігах тулінгу, ще
+  існують, і кожен кореневий `*.config.*` потрапляє в програму котрогось із
+  tsconfig. Ні токена, ні мережі не потребує; запускається як є.
 
 ---
 

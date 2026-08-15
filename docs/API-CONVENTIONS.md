@@ -28,9 +28,10 @@ always applies.
 | 🔧 **debt #NN** | Binding for anything you write now. Existing code is *not* yet in line, so do not infer the rule from what you read. |
 
 **When a marker flips.** This paragraph is the *only* statement of that rule.
-`.github/pull_request_template.md` and `docs/DECISIONS.md` point here instead of
-restating it — a rule written down in four places is a rule with four chances to
-disagree with itself, which is the failure this whole file exists to prevent.
+`.github/pull_request_template.md`, `docs/ONBOARDING.md` and `docs/DECISIONS.md`
+point here instead of restating it — a rule written down in four places is a
+rule with four chances to disagree with itself, which is the failure this whole
+file exists to prevent.
 
 - A `🔧` flips to `✅` in the pull request that closes the **last** of the issues
   its marker names. A marker may name several (`🔧 debt #38, #39, #41`); partial
@@ -47,6 +48,14 @@ disagree with itself, which is the failure this whole file exists to prevent.
   since closed, or when a numbered section carries no marker at all. It cannot
   check the other direction: nothing static knows that a new route module broke
   a `✅`. That one stays with review.
+- **A missed flip is the one thing it cannot catch before merge.** Everything
+  else it reports — a section with no marker, a number that is not an issue, a
+  document it can no longer parse — is already true while the PR is open, and
+  turns it red. But `Closes #NN` closes the issue at *merge*, so while the PR
+  is open that number is still open and the job is green whether or not the
+  marker was flipped; the run that goes red is the next one on `main`. For
+  that one case the gate before merge is the checkbox in
+  `.github/pull_request_template.md`, and this check is the detector after it.
 
 A `🔧` is never permission to skip the rule in new code — it is a warning that
 the codebase is the wrong place to learn it from. Rationale:
