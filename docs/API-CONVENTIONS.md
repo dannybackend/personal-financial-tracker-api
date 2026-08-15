@@ -50,10 +50,10 @@ file exists to prevent.
   a `✅`. That one stays with review.
 - **A missed flip is the one thing it cannot catch before merge.** Everything
   else it reports — a section with no marker, a number that is not an issue, a
-  document it can no longer parse — is decided from the file alone and turns
-  the pull request red. But `Closes #NN` closes the issue at *merge*, so while
-  the PR is open that number is still open and the job is green whether or not
-  the marker was flipped; the run that goes red is the next one on `main`. For
+  document it can no longer parse — is already true while the PR is open, and
+  turns it red. But `Closes #NN` closes the issue at *merge*, so while the PR
+  is open that number is still open and the job is green whether or not the
+  marker was flipped; the run that goes red is the next one on `main`. For
   that one case the gate before merge is the checkbox in
   `.github/pull_request_template.md`, and this check is the detector after it.
 
