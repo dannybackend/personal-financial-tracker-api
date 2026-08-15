@@ -77,15 +77,64 @@ export function globToRegExp(glob) {
     .replace(/\*\*\//gu, `${MARK}D`)
     .replace(/\*\*/gu, `${MARK}A`)
     .replace(/\*/gu, `${MARK}S`)
-    // Everything that is not one of the three wildcards is a literal, including
+    .replace(/\?/gu, `${MARK}Q`)
+    // Everything that is not one of the four wildcards is a literal, including
     // the `.` in `drizzle.config.ts` — unescaped it would also match
     // `drizzleXconfig` and report a pattern as live that names no real file.
     .replace(/[.+?^${}()|[\]\\]/gu, '\\$&')
     .split(`${MARK}D`).join('(?:.*/)?')
     .split(`${MARK}A`).join('.*')
-    .split(`${MARK}S`).join('[^/]*');
+    .split(`${MARK}S`).join('[^/]*')
+    .split(`${MARK}Q`).join('[^/]');
 
   return new RegExp(`^${pattern}$`, 'u');
+}
+
+/**
+ * Strips a leading `./` from a repo-relative path or pattern.
+ *
+ * `./drizzle.config.ts` and `drizzle.config.ts` name the same file to
+ * TypeScript, and a `files` array is commonly written the first way, but a
+ * string comparison between the two forms calls them different — which
+ * reported a root config as never type checked while `tsc` was compiling it.
+ *
+ * @param {string} value - path or glob as written in a config
+ * @returns {string} the same value without a `./` prefix
+ */
+function withoutDotSlash(value) {
+  return value.startsWith('./') ? value.slice(2) : value;
+}
+
+/**
+ * Converts one tsconfig `include`/`exclude` pattern to a matcher.
+ *
+ * TypeScript's dialect is not the one `globToRegExp` implements on its own: a
+ * pattern carrying no wildcard and no extension names a **directory** and
+ * matches everything beneath it, so `"exclude": ["dist"]` removes
+ * `dist/x.ts`. Read as a literal filename it matched nothing, and a normally
+ * written config looked as though it covered no root file at all.
+ *
+ * Kept separate from `globToRegExp` rather than folded into it, because the
+ * same directory-shaped pattern in `.coderabbit.yaml` means the literal path
+ * and nothing more — one function answering to two dialects is how a matcher
+ * starts quietly disagreeing with both.
+ *
+ * @param {string} pattern - an entry from `include` or `exclude`
+ * @returns {RegExp} anchored matcher for a repo-relative path
+ */
+function tsconfigGlobToRegExp(pattern) {
+  const normalised = withoutDotSlash(pattern).replace(/\/+$/u, '');
+  const lastSegment = normalised.slice(normalised.lastIndexOf('/') + 1);
+
+  // `.` is the project root written as a directory, and `""` is what `./`
+  // reduces to here. Both mean the whole tree, and neither survives the
+  // "does the last segment carry an extension" test that decides the rest:
+  // `.` is all dot and would read as a file with no name.
+  const isWholeTree = normalised === '' || /^\.+$/u.test(lastSegment);
+  const isDirectory = !/[*?]/u.test(normalised) && (isWholeTree || !lastSegment.includes('.'));
+
+  if (!isDirectory) return globToRegExp(normalised);
+  return globToRegExp(isWholeTree ? '**' : `${normalised}/**`);
 }
 
 /**
@@ -145,9 +194,15 @@ export function parseCodeRabbit(source) {
     if (guidelinesIndent >= 0 && indent >= 0 && indent <= guidelinesIndent) {
       guidelinesIndent = -1;
     }
-    // The list items sit deeper than the key, so anything at or above the key's
-    // own indentation has left the block.
-    if (instructionsIndent >= 0 && indent >= 0 && indent <= instructionsIndent) {
+    // A `-` item belongs to the block at the key's own indentation as well as
+    // deeper: YAML allows a sequence to sit level with its key, and it is a
+    // common house style. Treating "level with" as "outside" made every
+    // instruction invisible in a file that is valid and means exactly the same
+    // thing — a red build over formatting. Only a mapping line at or above the
+    // key ends the block.
+    const isItem = line.startsWith('-');
+    const leftInstructions = isItem ? indent < instructionsIndent : indent <= instructionsIndent;
+    if (instructionsIndent >= 0 && indent >= 0 && leftInstructions) {
       instructionsIndent = -1;
     }
 
@@ -279,7 +334,7 @@ function stripJsonComments(source) {
     const char = source[index] ?? '';
 
     if (char === '"') {
-      const closing = source.indexOf('"', index + 1);
+      const closing = endOfString(source, index);
       // An unterminated string would otherwise consume the rest of the file and
       // surface as a JSON error pointing at entirely the wrong position.
       if (closing === -1) break;
@@ -326,7 +381,7 @@ function stripTrailingCommas(json) {
     const char = json[index] ?? '';
 
     if (char === '"') {
-      const closing = json.indexOf('"', index + 1);
+      const closing = endOfString(json, index);
       if (closing === -1) break;
       out += json.slice(index, closing + 1);
       index = closing + 1;
@@ -334,8 +389,13 @@ function stripTrailingCommas(json) {
     }
 
     if (char === ',') {
-      const rest = json.slice(index + 1);
-      const next = rest.trimStart()[0];
+      // Scanned with an index rather than `json.slice(index + 1).trimStart()`,
+      // which copied the whole remaining document once per comma to look at a
+      // single character.
+      let lookahead = index + 1;
+      while (lookahead < json.length && /\s/u.test(json[lookahead] ?? '')) lookahead += 1;
+
+      const next = json[lookahead];
       if (next === '}' || next === ']') {
         index += 1;
         continue;
@@ -347,6 +407,31 @@ function stripTrailingCommas(json) {
   }
 
   return out;
+}
+
+/**
+ * Index of the closing quote of the JSON string starting at `start`.
+ *
+ * `indexOf('"')` was wrong for both walkers above: it stops at a
+ * backslash-escaped quote inside the value, after which the rest of that
+ * string is scanned as though it were structure — a `//` in it elided as a
+ * comment, a comma before `}` removed from inside a path.
+ *
+ * @param {string} text - JSON text
+ * @param {number} start - index of the opening quote
+ * @returns {number} index of the closing quote, or -1 when unterminated
+ */
+function endOfString(text, start) {
+  for (let index = start + 1; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === '\\') {
+      index += 1;
+      continue;
+    }
+    if (char === '"') return index;
+  }
+
+  return -1;
 }
 
 /**
@@ -511,13 +596,14 @@ export async function run() {
     return report(problems, instructions.length + filePatterns.length);
   }
 
-  // TypeScript's own rule, and the asymmetry is the point: `exclude` filters
-  // what `include` found and does not touch `files`, so a path named in `files`
-  // stays in the program however the exclusions read.
+  // TypeScript's precedence between the three keys, which is where the
+  // asymmetry lives: `exclude` filters what `include` found and does not touch
+  // `files`, so a path named in `files` stays in the program however the
+  // exclusions read. The glob dialect is `tsconfigGlobToRegExp`'s business.
   const compiled = tsconfigs.map((config) => ({
-    files: new Set(config.files),
-    include: config.include.map(globToRegExp),
-    exclude: config.exclude.map(globToRegExp),
+    files: new Set(config.files.map(withoutDotSlash)),
+    include: config.include.map(tsconfigGlobToRegExp),
+    exclude: config.exclude.map(tsconfigGlobToRegExp),
   }));
 
   for (const file of files.filter((candidate) => ROOT_CONFIG.test(candidate))) {

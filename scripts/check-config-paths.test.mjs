@@ -134,6 +134,12 @@ describe('globToRegExp', () => {
   it('leaves other characters, including spaces, literal', () => {
     expect(globToRegExp('a b/*.ts').test('a b/x.ts')).toBe(true);
   });
+
+  it('treats ? as one character inside a segment', () => {
+    expect(globToRegExp('src/a?.ts').test('src/ab.ts')).toBe(true);
+    expect(globToRegExp('src/a?.ts').test('src/a.ts')).toBe(false);
+    expect(globToRegExp('src/a?.ts').test('src/a/b.ts')).toBe(false);
+  });
 });
 
 describe('parseCodeRabbit', () => {
@@ -141,6 +147,31 @@ describe('parseCodeRabbit', () => {
     const { instructions, filePatterns } = parseCodeRabbit(HEALTHY_YAML);
     expect(instructions).toEqual(['src/**']);
     expect(filePatterns).toEqual(['**/AGENTS.md']);
+  });
+
+  it('reads list items that sit level with their key', () => {
+    // YAML allows a sequence at its key's own indentation, and it is a common
+    // house style. An earlier revision read the items as being outside the
+    // block, lost every instruction, and failed the build over formatting.
+    expect(parseCodeRabbit(`reviews:
+  path_instructions:
+  - path: "src/**"
+    instructions: "anything"
+`).instructions).toEqual(['src/**']);
+
+    expect(parseCodeRabbit(`path_instructions:
+- path: "src/**"
+`).instructions).toEqual(['src/**']);
+  });
+
+  it('still stops collecting at the next key', () => {
+    // The other half of the same change: level-with items belong to the block,
+    // a mapping line at that indentation ends it.
+    expect(parseCodeRabbit(`path_instructions:
+- path: "src/**"
+docstrings:
+- path: "not-an-instruction/**"
+`).instructions).toEqual(['src/**']);
   });
 
   it('ignores commented-out patterns', () => {
@@ -252,6 +283,14 @@ describe('parseTsconfigPaths', () => {
       include: ['src/**/*'],
       exclude: ['src/generated/**'],
     });
+  });
+
+  it('keeps a backslash-escaped quote inside a string', () => {
+    // `indexOf('"')` ended the string early, after which its tail was scanned
+    // as structure — a `//` in it elided as a comment, a comma before `}`
+    // taken for punctuation.
+    expect(parseTsconfigPaths('{ "include": ["a\\"//b.ts", "c.ts"] }').include)
+      .toEqual(['a"//b.ts', 'c.ts']);
   });
 
   it('returns empty lists when the keys are absent or not arrays', () => {
@@ -418,6 +457,40 @@ describe('the check as CI runs it', () => {
     const { code, stderr } = await runCli(dir);
     expect(code).toBe(1);
     expect(stderr).toContain('drizzle.config.ts is in no tsconfig program');
+  });
+
+  it('counts a files entry written with a ./ prefix', async () => {
+    // `./drizzle.config.ts` and `drizzle.config.ts` are the same file to tsc,
+    // and a string comparison between them said otherwise — reporting a config
+    // as never type checked while the compiler was compiling it.
+    const dir = await scratchRepo({
+      '.coderabbit.yaml': HEALTHY_YAML,
+      'tsconfig.json': APP_TSCONFIG,
+      'tsconfig.scripts.json': '{ "files": ["./drizzle.config.ts"] }',
+      'src/app.ts': '',
+      'AGENTS.md': '',
+      'drizzle.config.ts': '',
+    });
+
+    const { code } = await runCli(dir);
+    expect(code).toBe(0);
+  });
+
+  it('reads a bare directory in include the way tsc does', async () => {
+    // A pattern with no wildcard and no extension names a directory and covers
+    // everything under it. Read as a literal filename it matched nothing, and
+    // a normally written config looked as though it covered no root file.
+    const dir = await scratchRepo({
+      '.coderabbit.yaml': HEALTHY_YAML,
+      'tsconfig.json': APP_TSCONFIG,
+      'tsconfig.scripts.json': '{ "include": ["."] }',
+      'src/app.ts': '',
+      'AGENTS.md': '',
+      'drizzle.config.ts': '',
+    });
+
+    const { code } = await runCli(dir);
+    expect(code).toBe(0);
   });
 
   it('counts a file named in files, which exclude does not filter', async () => {
