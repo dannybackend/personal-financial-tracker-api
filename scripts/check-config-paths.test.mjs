@@ -8,6 +8,7 @@ import {
   globToRegExp,
   parseCodeRabbit,
   parseTsconfigPaths,
+  tsconfigGlobToRegExp,
 } from './check-config-paths.mjs';
 
 // Absolute, because the CLI cases run the script with `cwd` pointing at a
@@ -256,6 +257,33 @@ docstrings:
     // of passing.
     const { instructions } = parseCodeRabbit('reviews: { path_instructions: [{ path: "src/**" }] }');
     expect(instructions).toEqual([]);
+  });
+});
+
+describe('tsconfigGlobToRegExp', () => {
+  it('expands a bare directory the way tsc does', () => {
+    expect(tsconfigGlobToRegExp('scripts').test('scripts/a.mjs')).toBe(true);
+    expect(tsconfigGlobToRegExp('.').test('drizzle.config.ts')).toBe(true);
+  });
+
+  it('decides directory-ness on the last segment, not the whole pattern', () => {
+    // The regression this locks: testing the whole pattern let a wildcard
+    // earlier in the path disqualify it, so the ordinary way to write "a
+    // `dist` anywhere" matched the path `dist` and nothing beneath it.
+    const matcher = tsconfigGlobToRegExp('**/generated');
+    expect(matcher.test('generated/x.ts')).toBe(true);
+    expect(matcher.test('nested/generated/x.ts')).toBe(true);
+  });
+
+  it('leaves a pattern whose last segment is itself a wildcard alone', () => {
+    expect(tsconfigGlobToRegExp('src/**/*').test('src/app.ts')).toBe(true);
+    expect(tsconfigGlobToRegExp('src/**').test('src/routes/a.ts')).toBe(true);
+    expect(tsconfigGlobToRegExp('*.config.ts').test('vitest.config.ts')).toBe(true);
+  });
+
+  it('treats a last segment carrying an extension as a file', () => {
+    expect(tsconfigGlobToRegExp('drizzle.config.ts').test('drizzle.config.ts')).toBe(true);
+    expect(tsconfigGlobToRegExp('drizzle.config.ts').test('drizzle.config.ts/x')).toBe(false);
   });
 });
 

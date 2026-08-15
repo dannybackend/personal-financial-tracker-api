@@ -23,9 +23,15 @@
  *
  *   1. every `path:` under `reviews.path_instructions` matches a tracked file;
  *   2. every `knowledge_base.code_guidelines.filePatterns` entry matches one;
- *   3. every root-level `*.config.*` file appears in the `include` of
- *      `tsconfig.json` or `tsconfig.scripts.json`;
- *   4. the readers below still recognise their files — parsing nothing out of
+ *   3. that key is present at all, and `code_guidelines.enabled` is `true` —
+ *      presence, not just correctness, because deleting the block outright
+ *      left every remaining pattern resolving and the run reporting success,
+ *      which is `docs/API-CONVENTIONS.md` going invisible again in silence;
+ *   4. every root-level `*.config.*` file lands in the program of
+ *      `tsconfig.json` or `tsconfig.scripts.json`, counted by TypeScript's own
+ *      precedence — `include` minus `exclude`, plus `files`, which `exclude`
+ *      does not filter;
+ *   5. the readers below still recognise their files — parsing nothing out of
  *      a config that plainly declares the key is a failure, not a pass.
  *
  * What it deliberately does NOT check: that an instruction is *right*, that a
@@ -115,15 +121,27 @@ function withoutDotSlash(value) {
  * `dist/x.ts`. Read as a literal filename it matched nothing, and a normally
  * written config looked as though it covered no root file at all.
  *
+ * That decision belongs to the **last segment**, not to the whole pattern.
+ * Testing the whole one meant any wildcard earlier in the path disqualified
+ * it, so an `exclude` of a recursive prefix followed by a slash and `dist` —
+ * the ordinary way to write "a `dist` anywhere" — matched the path `dist`
+ * itself and nothing under it.
+ *
  * Kept separate from `globToRegExp` rather than folded into it, because the
  * same directory-shaped pattern in `.coderabbit.yaml` means the literal path
  * and nothing more — one function answering to two dialects is how a matcher
  * starts quietly disagreeing with both.
  *
+ * Exported for its tests. No case reachable through `run` can exercise the
+ * recursive-prefix form today, because the only thing asked about coverage is
+ * a root-level `*.config.*` and a root file sits inside no directory — so the
+ * matcher is right here on the strength of the rule it claims to implement,
+ * not on a failure anybody can currently trip.
+ *
  * @param {string} pattern - an entry from `include` or `exclude`
  * @returns {RegExp} anchored matcher for a repo-relative path
  */
-function tsconfigGlobToRegExp(pattern) {
+export function tsconfigGlobToRegExp(pattern) {
   const normalised = withoutDotSlash(pattern).replace(/\/+$/u, '');
   const lastSegment = normalised.slice(normalised.lastIndexOf('/') + 1);
 
@@ -132,7 +150,8 @@ function tsconfigGlobToRegExp(pattern) {
   // "does the last segment carry an extension" test that decides the rest:
   // `.` is all dot and would read as a file with no name.
   const isWholeTree = normalised === '' || /^\.+$/u.test(lastSegment);
-  const isDirectory = !/[*?]/u.test(normalised) && (isWholeTree || !lastSegment.includes('.'));
+  const isDirectory =
+    isWholeTree || (!/[*?]/u.test(lastSegment) && !lastSegment.includes('.'));
 
   if (!isDirectory) return globToRegExp(normalised);
   return globToRegExp(isWholeTree ? '**' : `${normalised}/**`);
