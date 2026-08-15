@@ -54,6 +54,33 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+  # Separate from `markers` despite the identical shape, because the two differ
+  # on the one thing that matters here: this check reads no issues, so it must
+  # run on forks too. Folding it into that job would inherit the fork skip and
+  # silently stop checking exactly where an outside contributor is most likely
+  # to add a config path nobody reviews.
+  config-paths:
+    name: Config paths
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The check judges patterns against `git ls-files`, which reads the
+          # index and the working tree, not history — and a shallow checkout
+          # populates both in full. Depth stays at the default for that reason.
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      # No `npm ci` and no network, same as above.
+      - run: npm run check:config-paths
+
   ci:
     runs-on: ubuntu-latest
 
