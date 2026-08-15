@@ -23,11 +23,19 @@ const hookExclude = [...configDefaults.exclude, '.claude/worktrees/**'];
 
 export default defineConfig({
   test: {
-    // Two projects because the suites need opposite things. The application
-    // tests want a real database; the tooling tests under scripts/ touch no
-    // I/O at all, and making them wait on Postgres - and pay a TRUNCATE after
-    // every case - would gate the cheapest tests in the repository behind its
+    // Three projects because the suites need different things. The application
+    // tests want a real database; the tooling tests under scripts/ and the
+    // hook's own tests under .claude/hooks/ want none - they do plenty of I/O
+    // of their own (temp dirs, `git init`, spawned node processes), just never
+    // Postgres, and making them wait on it - and pay a TRUNCATE after every
+    // case - would gate the cheapest tests in the repository behind its
     // heaviest dependency.
+    //
+    // `hooks` could have been folded into `scripts`: their includes would
+    // simply concatenate. What keeps it separate is the exclusion - it needs
+    // hookExclude, and the shared `exclude` was deliberately left broad rather
+    // than narrowed for all three. docs/DECISIONS.md -> "Уточнення: проєктів
+    // Vitest три, а не два" records why that trade was taken.
     projects: [
       {
         test: {

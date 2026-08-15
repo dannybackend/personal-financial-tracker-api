@@ -170,10 +170,15 @@ Full walkthrough, database inspection and troubleshooting:
 npm run lint && npm run typecheck && npm test
 ```
 
-CI runs one more gate: `npm run check:markers` verifies that the conformance
-markers in [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) still match the
-open issues they name. It needs a GitHub token, so it is kept out of the line
-above — see [`docs/ONBOARDING.md`](docs/ONBOARDING.md) to run it locally.
+CI runs two more gates, each as its own job:
+
+- `npm run check:markers` — the conformance markers in
+  [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) still match the open
+  issues they name. Needs a GitHub token, so it is kept out of the line above
+  — see [`docs/ONBOARDING.md`](docs/ONBOARDING.md) to run it locally.
+- `npm run check:config-paths` — the paths the tooling configs name still
+  exist, and every root `*.config.*` file lands in a tsconfig program. Needs no
+  token and no network; run it as-is.
 
 ---
 
