@@ -1,10 +1,17 @@
 {
-  // Repository tooling lives outside the application build: `scripts/` is
-  // plain ESM JavaScript so `npm` and CI can run it with no compile step and
-  // no `npm ci`. That is a deliberate exception to "TypeScript, no exceptions"
-  // in AGENTS.md, and this config is what keeps it from also being an
-  // exception to type checking — `checkJs` holds the JSDoc annotations to the
-  // same strict rules the application is held to.
+  // Repository tooling lives outside the application build: `scripts/` and
+  // `.claude/hooks/` are plain JavaScript so npm, CI and Claude Code can run
+  // them with no compile step and no `npm ci`. That is a deliberate exception
+  // to "TypeScript, no exceptions" in AGENTS.md, and this config is what keeps
+  // it from also being an exception to type checking — `checkJs` holds the
+  // JSDoc annotations to the same strict rules the application is held to.
+  // Both directories are listed because the decision that granted the
+  // exception granted it to both, conditional on exactly this file covering
+  // them. `.claude/hooks/` was left out when this config was first written, so
+  // the condition lived in the decision and not in the build — and the first
+  // run that did cover it reported an implicit `any` for every declared
+  // function parameter in both files — and, through them, for the inline
+  // callbacks whose receiver came from one.
   //
   // Extends the application config rather than restating it, so a future
   // `target` bump or new strictness flag reaches both. Only the four options
@@ -18,5 +25,5 @@
     "checkJs": true,
     "noEmit": true
   },
-  "include": ["scripts/**/*"]
+  "include": ["scripts/**/*", ".claude/hooks/**/*"]
 }

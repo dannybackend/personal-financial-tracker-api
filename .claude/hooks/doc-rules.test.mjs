@@ -42,6 +42,9 @@ const source = readFileSync(hookUrl, 'utf8');
  * The reminder strings, one per line in this hook, each a quoted array entry.
  * Matching whole lines rather than quotes keeps apostrophes in prose comments
  * ("this reminder's business") from opening a spurious string match.
+ *
+ * @param {string} text
+ * @returns {string[]}
  */
 function reminderLines(text) {
   return text
@@ -57,24 +60,43 @@ const remindersText = reminders.join('\n');
  * Removes placeholders like `src/routes/<name>.test.ts`, which describe a shape
  * rather than name a file. The whole run has to go: matching only the token
  * would leave the tail `test.ts` behind and report it as a missing file.
+ *
+ * @param {string} text
+ * @returns {string}
  */
 const stripPlaceholders = (text) => text.replace(/[\w./-]*<[^>]*>[\w./-]*/g, ' ');
 
+/**
+ * @param {string} text
+ * @returns {string[]}
+ */
 function referencedPaths(text) {
   const matches =
     stripPlaceholders(text).match(/[\w][\w./-]*\.(?:md|ts|mjs|cjs|http|json|yml)/g) ?? [];
   return [...new Set(matches)];
 }
 
+/**
+ * @param {string} text
+ * @returns {string[]}
+ */
 function referencedNpmScripts(text) {
-  return [...new Set([...text.matchAll(/npm run ([\w:-]+)/g)].map((m) => m[1]))];
+  // flatMap rather than map: a match without group 1 would otherwise put
+  // `undefined` in the list and surface as a test case named "undefined".
+  const names = [...text.matchAll(/npm run ([\w:-]+)/g)].flatMap((m) => (m[1] ? [m[1]] : []));
+  return [...new Set(names)];
 }
 
 const paths = referencedPaths(remindersText);
 const npmScripts = referencedNpmScripts(remindersText);
 const packageJson = JSON.parse(readFileSync(new URL('package.json', repoRootUrl), 'utf8'));
 
-/** Runs the hook exactly as Claude Code does: JSON on stdin, JSON on stdout. */
+/**
+ * Runs the hook exactly as Claude Code does: JSON on stdin, JSON on stdout.
+ *
+ * @param {{cwd: string, tool_name?: string, tool_input: {file_path?: string}}} payload
+ * @returns {string} Raw stdout - empty when the hook has nothing to say.
+ */
 function runHook(payload) {
   return execFileSync(process.execPath, [hookPath], {
     input: JSON.stringify(payload),
@@ -82,7 +104,10 @@ function runHook(payload) {
   });
 }
 
+/** @param {string} file_path @returns {Parameters<typeof runHook>[0]} */
 const edit = (file_path) => ({ cwd: repoRoot, tool_name: 'Edit', tool_input: { file_path } });
+
+/** @param {string} file_path @returns {Parameters<typeof runHook>[0]} */
 const write = (file_path) => ({ cwd: repoRoot, tool_name: 'Write', tool_input: { file_path } });
 
 describe('doc-rules reminders name real things', () => {
@@ -133,7 +158,10 @@ describe('doc-rules fires where it should', () => {
   });
 
   it('reminds when a route module is created', () => {
-    const parsed = JSON.parse(runHook(write('src/routes/categories.ts')));
+    // The rule needs a path git does not track, so the fixture must be one no
+    // feature can ever claim. `categories.ts` would have worked until issue #13
+    // shipped it, and then failed here while the hook was behaving correctly.
+    const parsed = JSON.parse(runHook(write('src/routes/__fixture-never-a-real-route.ts')));
 
     expect(parsed.hookSpecificOutput.additionalContext).toContain('New route module.');
   });

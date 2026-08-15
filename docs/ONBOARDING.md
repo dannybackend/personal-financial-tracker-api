@@ -187,14 +187,16 @@ npm run build
 ```
 
 `npm run typecheck` виконує **два** конфіги: `tsconfig.json` для застосунку і
-`tsconfig.scripts.json` для `scripts/`. Другий існує, бо `scripts/` — це
-звичайний ESM JavaScript (щоб CI міг запускати його без збірки і без
-`npm ci`), і `checkJs` тримає його JSDoc під тими самими strict-правилами.
-Окремим файлом, а не в `include` основного, бо основний веде `npm run build`,
-де `rootDir: ./src` робить будь-який файл поза `src/` помилкою.
+`tsconfig.scripts.json` для інструментального коду поза застосунком —
+`scripts/` та `.claude/hooks/`. Другий існує, бо це звичайний JavaScript (щоб
+CI і Claude Code запускали його без збірки і без `npm ci`), і `checkJs` тримає
+його JSDoc під тими самими strict-правилами. Окремим файлом, а не в `include`
+основного, бо основний веде `npm run build`, де `rootDir: ./src` робить
+будь-який файл поза `src/` помилкою.
 
-`npm test` теж розділений на два проєкти Vitest: `app` (потребує Postgres) і
-`scripts` (жодного I/O). Прогнати лише другий — `npx vitest run --project scripts`.
+`npm test` розділений на **три** проєкти Vitest: `app` (потребує Postgres),
+`scripts` і `hooks` (базу не потребує жоден із двох). Прогнати те, що не чекає
+на базу — `npx vitest run --project scripts --project hooks`.
 
 Звірити маркери відповідності в `docs/API-CONVENTIONS.md` зі станом issue на
 GitHub — те саме, що робить окремий job `markers` у CI. Потребує токена, бо

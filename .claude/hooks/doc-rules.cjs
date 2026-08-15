@@ -41,6 +41,9 @@ function readStdin() {
  * Absolute path of the repository root, or null outside a work tree.
  * Resolved from the edited file's own directory so it is correct no matter
  * where the session was started.
+ *
+ * @param {string} fromDir Directory to resolve the work tree from.
+ * @returns {string|null}
  */
 function repoRoot(fromDir) {
   try {
@@ -64,6 +67,10 @@ function repoRoot(fromDir) {
  *
  * `--` separates the pathspec from options so a path that starts with a dash
  * is never parsed as one.
+ *
+ * @param {string} root Repository root the pathspec is resolved against.
+ * @param {string} relPath Path relative to that root.
+ * @returns {boolean}
  */
 function isNewFile(root, relPath) {
   try {
@@ -84,6 +91,9 @@ function isNewFile(root, relPath) {
  * synchronous `git rev-parse` and almost every edit in a session matches no
  * rule. Deliberately loose - it only has to be cheap and never reject a path
  * `rulesFor` would have accepted; `rulesFor` still decides.
+ *
+ * @param {string} absPath Absolute path of the edited file.
+ * @returns {boolean}
  */
 function mayMatch(absPath) {
   const p = absPath.split(path.sep).join('/');
@@ -95,6 +105,11 @@ function mayMatch(absPath) {
 /**
  * Maps an edited file to the documentation rules it triggers.
  * Returns null when nothing applies - the overwhelmingly common case.
+ *
+ * @param {string} p Path relative to the repository root, forward slashes.
+ * @param {string} root Repository root, for the git lookup behind isNewFile.
+ * @param {boolean} isCreate Whether the tool that fired was `Write`.
+ * @returns {string[]|null}
  */
 function rulesFor(p, root, isCreate) {
   // Both files are listed as schema sources in drizzle.config.ts, so either
