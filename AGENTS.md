@@ -116,6 +116,7 @@ live outside this file so it stays what gets loaded on every request.
 |---|---|
 | Starting a task, branching, labels, issue links, committing | skill `task-workflow` |
 | Opening a PR, handling CodeRabbit review | skill `pr-workflow` |
+| Triaging review findings, then applying them | skills `discuss-comments` (findings from `/code-review`) or `discuss-rabbit` (CodeRabbit comments), then `implement-comments`; you invoke them, the model cannot |
 | Editing `src/db/schema.ts`, adding a migration or a route module | hook `.claude/hooks/doc-rules.cjs` (fires by itself) |
 
 ## Documentation duties

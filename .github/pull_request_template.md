@@ -39,6 +39,9 @@ npm run lint && npm run typecheck && npm test
 
 ## After CodeRabbit reviews
 
-Every comment gets a fix or a reply explaining why not — never a silent
-dismissal, even when the underlying code gets fixed anyway. The explanation is
-part of the record (`CONTRIBUTING.md` → PR Rules).
+Every comment is fixed or answered, per the reply rule in the skill
+`pr-workflow` — deliberately not restated here. The copy that used to sit in
+this section outlived the rule it quoted: it still demanded a reply to every
+comment after that rule had been narrowed to three cases. Reasoning:
+`docs/DECISIONS.md` → «Відповідь на коментар CodeRabbit — за винятком, не за
+замовчуванням».

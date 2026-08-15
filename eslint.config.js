@@ -30,5 +30,21 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-require-imports": "off",
     },
+  },
+  {
+    // Tests for those hooks are ESM, because Vitest runs them as ESM. Without
+    // this block they inherit a config that declares no globals at all, so
+    // `URL`, `process` and `console` each error as undefined - and the fix
+    // reached for first is an import or a disable comment in every new file,
+    // which hides a config gap instead of closing it.
+    files: [".claude/hooks/**/*.mjs"],
+    languageOptions: {
+      sourceType: "module",
+      globals: {
+        URL: "readonly",
+        process: "readonly",
+        console: "readonly",
+      },
+    },
   }
 );

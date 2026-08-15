@@ -9,9 +9,10 @@ moved into `.claude/`, which only Claude Code reads — see `docs/DECISIONS.md` 
 - **Always-relevant rules** — `AGENTS.md` at the repo root, loaded in full on
   every request via `CLAUDE.md`. Code standards are defined there; do not
   duplicate them here.
-- **Situational rules** — `.claude/skills/` (task and PR workflow, loaded on
-  demand) and `.claude/hooks/` (documentation reminders that fire on the
-  matching file edit). Committed on purpose: project rules, not personal setup.
+- **Situational rules** — `.claude/skills/` (task workflow, PR workflow, and
+  the review flow `/code-review` → triage → apply; loaded on demand) and
+  `.claude/hooks/` (documentation reminders that fire on the matching file
+  edit). Committed on purpose: project rules, not personal setup.
   Only `.claude/settings.local.json` stays out of git.
 - **Another tool** reading `AGENTS.md` directly still gets everything that
   shapes code, but not the situational workflow. Rebuild that tool's config
@@ -46,8 +47,8 @@ One feature = one PR. Even if you are working alone.
 
 ## PR Rules
 - Every PR goes through CodeRabbit review
-- Read every CodeRabbit comment — either fix it or leave a comment explaining why you disagree
-- Do not dismiss comments silently
+- Read every CodeRabbit comment and act on each one. Whether it also needs a written reply is decided by the rule in `.claude/skills/pr-workflow/SKILL.md` → "After CodeRabbit reviews", deliberately not restated here — the copy that used to live on this line named only one of the cases that rule lists
+- Do not dismiss comments silently. This line is the rule's home; `pr-workflow` points back here for it
 - A feature and its integration-test issue ship in the same PR (e.g. #11 and #12) — a feature PR shouldn't merge before its test coverage lands, per `AGENTS.md`'s "every new endpoint needs a test" rule
 
 ## Before Every Commit

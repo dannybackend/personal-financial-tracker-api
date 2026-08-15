@@ -105,7 +105,11 @@ function rulesFor(p, root, isCreate) {
       '- generate the migration (`npm run db:generate`) - schema edits without one drift silently',
       '- if the migration introduces a backend concept for the first time in this project (indexes, constraints, transactions, soft delete...), append an entry to docs/LEARNING.md',
       '- if this involved a trade-off between viable approaches, append an entry to docs/DECISIONS.md (append only; corrections go in as a new "Уточнення" entry)',
-      '- keep the Mermaid ERD in step with the tables you changed - it exists in BOTH README.md and README.uk.md, which never diverge',
+      // Prose sections, not a diagram - neither README has an ERD. This line
+      // said "Mermaid ERD" from the hook's first commit until issue #76 and
+      // pointed at nothing the whole time. The planned ERD belongs to
+      // DECISIONS.md (issue #57) and is not this reminder's business.
+      '- keep the "Data model" / "Модель даних" section in step with the tables you changed - it exists in BOTH README.md and README.uk.md, which never diverge',
       '- docs/API-CONVENTIONS.md §5-§7 bind money, currency and date columns',
     ];
   }

@@ -12,6 +12,7 @@
 - [x] Hono сервер запускається (`npm run dev`)
 - [x] AGENTS.md (SSOT) + CLAUDE.md, .cursor/rules/, .agents/rules/ (імпорт AGENTS.md) + CONTRIBUTING.md — конфіги Cursor/Antigravity згодом видалені разом із issue #60
 - [x] Розділення AGENTS.md: завжди-контекст лишився, ситуативні правила — в `.claude/skills/`, документаційні тригери — в `.claude/hooks/` (issue #60)
+- [x] Три агентські правила приведені до реальності: PR-шаблон більше не несе скасоване правило відповіді CodeRabbit, хук указує на секцію «Модель даних» замість неіснуючого ERD, флоу розбору рев'ю (`discuss-comments` / `discuss-rabbit` → `implement-comments`) внесений у переліки скілів і має запис про компроміси. Посилання в тексті хука відтепер перевіряє тест `.claude/hooks/doc-rules.test.mjs` — той клас помилки не ловили ні eslint, ні тести, ні запуск хука (issue #76)
 - [x] CodeRabbit підключено, `.coderabbit.yaml` налаштовано
 - [x] Онбординг для нового розробника (`docs/ONBOARDING.md`)
 - [x] Навчальний журнал бекенд-концепцій (`docs/LEARNING.md`)
