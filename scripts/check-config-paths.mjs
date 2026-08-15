@@ -54,12 +54,13 @@ const ROOT_CONFIG = /^[^/]+\.config\.(?:ts|js|mts|cts|mjs|cjs)$/u;
 /**
  * Converts one glob to an anchored regular expression.
  *
- * Only the three forms our configs actually use are supported — a leading
- * `**` followed by a slash as an optional path prefix, a bare `**` as any
- * tail, and `*` as one path segment — and every other character becomes a
- * literal. A glob dialect richer than the inputs would be a second source of
- * disagreement about what a pattern means, which is the class of problem this
- * file exists to remove.
+ * Four forms are supported — a leading `**` followed by a slash as an optional
+ * path prefix, a bare `**` as any tail, `*` as one path segment, and `?` as
+ * one character within a segment — and every other character becomes a
+ * literal. That is the set minimatch and TypeScript agree on, so a pattern
+ * means the same thing here as in the tool being checked; anything richer
+ * would be a second source of disagreement about what a pattern means, which
+ * is the class of problem this file exists to remove.
  *
  * The wildcards are parked on NUL placeholders before the escaping pass, so
  * escaping cannot mangle them and they cannot collide with anything a real
@@ -182,6 +183,13 @@ export function parseCodeRabbit(source) {
   // written it as a review instruction.
   let instructionsIndent = -1;
 
+  // And for the contents of a block scalar, which are text and not structure.
+  // An `instructions:` value may run to 20,000 characters, so the moment one
+  // grows past a single line it becomes a `|` block — and a `- path:` written
+  // inside it as an example was collected as a real instruction, then failed
+  // the build naming a pattern that exists only inside a quoted string.
+  let scalarIndent = -1;
+
   for (const raw of source.split(/\r?\n/u)) {
     // A whole-line comment reduces to '', which the list-termination check
     // below deliberately treats as "keep going" — so a comment sitting inside
@@ -194,6 +202,15 @@ export function parseCodeRabbit(source) {
     if (guidelinesIndent >= 0 && indent >= 0 && indent <= guidelinesIndent) {
       guidelinesIndent = -1;
     }
+    // Everything indented past the key that opened a block scalar is its
+    // value. A blank line inside one carries no indentation to compare, so it
+    // does not end it; the first line back at or above the key does, and that
+    // line is then read as structure like any other.
+    if (scalarIndent >= 0) {
+      if (indent === -1 || indent > scalarIndent) continue;
+      scalarIndent = -1;
+    }
+
     // A `-` item belongs to the block at the key's own indentation as well as
     // deeper: YAML allows a sequence to sit level with its key, and it is a
     // common house style. Treating "level with" as "outside" made every
@@ -204,6 +221,13 @@ export function parseCodeRabbit(source) {
     const leftInstructions = isItem ? indent < instructionsIndent : indent <= instructionsIndent;
     if (instructionsIndent >= 0 && indent >= 0 && leftInstructions) {
       instructionsIndent = -1;
+    }
+
+    // `key: |`, `key: >`, and their chomping/indentation modifiers (`|-`,
+    // `>+`, `|2`). The key line itself is structure; everything under it is not.
+    if (/:\s*[|>][-+0-9]*$/u.test(line)) {
+      scalarIndent = indent;
+      continue;
     }
 
     if (/^code_guidelines:\s*$/u.test(line)) {

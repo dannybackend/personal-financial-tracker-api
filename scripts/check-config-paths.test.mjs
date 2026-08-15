@@ -174,6 +174,25 @@ docstrings:
 `).instructions).toEqual(['src/**']);
   });
 
+  it('does not read a block scalar as structure', () => {
+    // An `instructions:` value may run to 20,000 characters, so it becomes a
+    // `|` block the moment it outgrows one line — and an example `- path:`
+    // written inside it was collected as a real instruction, then failed the
+    // build naming a pattern that exists only inside a quoted string.
+    const { instructions } = parseCodeRabbit(`reviews:
+  path_instructions:
+    - path: "src/**"
+      instructions: |
+        Write entries like this:
+        - path: "src/config/**"
+
+        Note the blank line above stays inside this value.
+    - path: "src/db/**"
+      instructions: "short one"
+`);
+    expect(instructions).toEqual(['src/**', 'src/db/**']);
+  });
+
   it('ignores commented-out patterns', () => {
     // This config explains its own history in comments, and the pattern that
     // caused all this — `src/config/**` — is named in one of them. Checking a
