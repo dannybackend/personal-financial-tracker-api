@@ -171,6 +171,11 @@ npm run dev
 npm run lint && npm run typecheck && npm test
 ```
 
+У CI є ще один гейт: `npm run check:markers` звіряє маркери відповідності в
+[`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) зі станом issue, які вони
+називають. Йому потрібен GitHub-токен, тому в рядок вище він не входить — як
+запустити локально, див. [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
+
 ---
 
 ## Документація

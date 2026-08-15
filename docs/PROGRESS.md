@@ -8,11 +8,19 @@
 ## Фаза 1 — Тиждень 1-2: Середовище і орієнтація
 
 - [x] Docker Desktop (all-users install) + `docker-compose.yml` (PostgreSQL + Redis)
-- [x] Node.js 24, TypeScript 5 (strict mode), ESLint
+- [x] Node.js 24, TypeScript 6 (strict mode), ESLint
 - [x] Hono сервер запускається (`npm run dev`)
 - [x] AGENTS.md (SSOT) + CLAUDE.md, .cursor/rules/, .agents/rules/ (імпорт AGENTS.md) + CONTRIBUTING.md — конфіги Cursor/Antigravity згодом видалені разом із issue #60
 - [x] Розділення AGENTS.md: завжди-контекст лишився, ситуативні правила — в `.claude/skills/`, документаційні тригери — в `.claude/hooks/` (issue #60)
 - [x] CodeRabbit підключено, `.coderabbit.yaml` налаштовано
+- [x] Маркери відповідності коду в `docs/API-CONVENTIONS.md` (`✅ holds` / `🔧 debt #NN`) — секція більше не описує в теперішньому часі механізм, якого немає; перевертає маркер той PR, що закриває issue (issue #71)
+- [x] CI-крок, що звіряє маркери `🔧 debt #NN` зі станом issue і валить збірку, коли issue закрита, коли номер неіснуючий або коли нумерована секція лишилась без маркера — `scripts/check-conformance-markers.mjs`, окремий job без Postgres і без `npm ci` (issue #73, знайдено при рев'ю #71)
+- [x] Обсяг `npm test` виправлено: Vitest підхоплював другу копію `src/` із
+      `.claude/worktrees/` і ганяв застарілі інтеграційні тести проти тієї ж
+      тестової бази — з того, що звітувалось як один набір, 27 були справжні
+      інтеграційні, а 21 дублем зі старої копії на відʼєднаному HEAD. Конфіг
+      розділено на проєкти `app`/`scripts` з `exclude` у кожному; сам worktree
+      знято (знайдено при рев'ю #71)
 - [x] Онбординг для нового розробника (`docs/ONBOARDING.md`)
 - [x] Навчальний журнал бекенд-концепцій (`docs/LEARNING.md`)
 - [x] Процедура старту нового проєкту (`docs/BOOTSTRAP.md`) — питання, які треба закрити до першої моделі даних (issue #62)
@@ -41,7 +49,10 @@
 - [ ] Zod валідація на всіх endpoints
 - [x] Інтеграційні тести (Vitest) — окрема тестова база, `src/app.test.ts` покриває реєстрацію/логін (issue #10), `src/routes/accounts.test.ts` покриває accounts CRUD (issue #12); категорії/транзакції/бюджети отримають власні тести по мірі реалізації (#14, #17, #19)
 - [ ] Rate limiting через Redis
-- [ ] Пагінація і фільтрація list endpoints
+- [ ] Пагінація і фільтрація list endpoints — транзакції (issue #16) і ретрофіт
+      `GET /accounts` (issue #72). Останній сьогодні без `limit`, `offset` і
+      без `ORDER BY` узагалі, тож порядок рядків не визначений і не зобов'язаний
+      збігатися між двома однаковими запитами (знайдено при рев'ю #71)
 - [ ] OpenAPI документація (Scalar)
 - [ ] Деплой на Railway або Render
 - [ ] Локи в міграціях, що змінюють тип/`NOT NULL`/`CHECK` на наявних
