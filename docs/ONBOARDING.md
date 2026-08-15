@@ -186,6 +186,36 @@ npm test
 npm run build
 ```
 
+`npm run typecheck` виконує **два** конфіги: `tsconfig.json` для застосунку і
+`tsconfig.scripts.json` для `scripts/`. Другий існує, бо `scripts/` — це
+звичайний ESM JavaScript (щоб CI міг запускати його без збірки і без
+`npm ci`), і `checkJs` тримає його JSDoc під тими самими strict-правилами.
+Окремим файлом, а не в `include` основного, бо основний веде `npm run build`,
+де `rootDir: ./src` робить будь-який файл поза `src/` помилкою.
+
+`npm test` теж розділений на два проєкти Vitest: `app` (потребує Postgres) і
+`scripts` (жодного I/O). Прогнати лише другий — `npx vitest run --project scripts`.
+
+Звірити маркери відповідності в `docs/API-CONVENTIONS.md` зі станом issue на
+GitHub — те саме, що робить окремий job `markers` у CI. Потребує токена, бо
+читає issue через API:
+
+```bash
+GITHUB_TOKEN=$(gh auth token) npm run check:markers
+```
+
+У Windows PowerShell (інлайн-префікса змінної там немає, тому двома командами):
+
+```powershell
+$env:GITHUB_TOKEN = gh auth token
+npm run check:markers
+```
+
+Червоніє, коли маркер `🔧 debt #NN` називає вже закриту чи неіснуючу issue,
+коли нумерована секція лишилась без маркера, або коли парсер перестав
+упізнавати документ. Що з цим робити — легенда «Conformance markers» у самому
+`docs/API-CONVENTIONS.md`.
+
 Згенерувати нову міграцію після зміни Drizzle-схеми:
 
 ```bash

@@ -28,6 +28,7 @@ blank, so the difference between "did not apply" and "forgot" stays visible.
 - [ ] Handler follows the 4-step pattern, including step 2 — ownership verified for **every** id arriving in a request body (`docs/API-CONVENTIONS.md` §1). Routes delegated to Better Auth (`/api/auth/*`) are exempt by decision (§2)
 - [ ] Response conforms to **every applicable section** of `docs/API-CONVENTIONS.md` §3–§11 — status codes, error shape, money, currency, dates, pagination, soft delete, transfers, naming. Not only the sections you happened to remember
 - [ ] Every new endpoint has at least one integration test
+- [ ] **Closed an issue named by a `🔧` marker in `docs/API-CONVENTIONS.md`** → the marker is updated here, per the flip rule in that file's "Conformance markers" legend (deliberately not restated in this template). `npm run check:markers` fails CI when a marker names an issue that has since closed
 
 ## Checks
 
@@ -36,6 +37,7 @@ npm run lint && npm run typecheck && npm test
 ```
 
 - [ ] All three pass locally
+- [ ] `npm run check:markers` passes — CI runs it as its own job, and it needs a GitHub token, which is why it is not in the line above (`docs/ONBOARDING.md` → "Корисні команди")
 
 ## After CodeRabbit reviews
 

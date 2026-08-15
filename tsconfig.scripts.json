@@ -1,0 +1,22 @@
+{
+  // Repository tooling lives outside the application build: `scripts/` is
+  // plain ESM JavaScript so `npm` and CI can run it with no compile step and
+  // no `npm ci`. That is a deliberate exception to "TypeScript, no exceptions"
+  // in AGENTS.md, and this config is what keeps it from also being an
+  // exception to type checking — `checkJs` holds the JSDoc annotations to the
+  // same strict rules the application is held to.
+  //
+  // Extends the application config rather than restating it, so a future
+  // `target` bump or new strictness flag reaches both. Only the four options
+  // that must differ are overridden: `rootDir`, because the base pins it to
+  // ./src and a file outside that is an error; and allowJs/checkJs/noEmit,
+  // which describe what this directory is.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true
+  },
+  "include": ["scripts/**/*"]
+}

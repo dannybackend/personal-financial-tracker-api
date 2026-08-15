@@ -46,5 +46,20 @@ export default tseslint.config(
         console: "readonly",
       },
     },
+  },
+  {
+    // Repository tooling: standalone ESM scripts run by npm and by CI, outside
+    // the application bundle. Linted for the same reason as the hooks above —
+    // a broken guard script fails quietly, and this one exists precisely to
+    // stop a document from going quietly wrong.
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        fetch: "readonly",
+        AbortSignal: "readonly",
+      },
+    },
   }
 );

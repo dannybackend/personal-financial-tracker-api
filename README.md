@@ -170,6 +170,11 @@ Full walkthrough, database inspection and troubleshooting:
 npm run lint && npm run typecheck && npm test
 ```
 
+CI runs one more gate: `npm run check:markers` verifies that the conformance
+markers in [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) still match the
+open issues they name. It needs a GitHub token, so it is kept out of the line
+above — see [`docs/ONBOARDING.md`](docs/ONBOARDING.md) to run it locally.
+
 ---
 
 ## Documentation
