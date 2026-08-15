@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path';
 import {
   globToRegExp,
   parseCodeRabbit,
-  parseTsconfigInclude,
+  parseTsconfigPaths,
 } from './check-config-paths.mjs';
 
 // Absolute, because the CLI cases run the script with `cwd` pointing at a
@@ -40,6 +40,23 @@ async function scratchRepo(files) {
   scratch.push(dir);
 
   execFileSync('git', ['init', '-q'], { cwd: dir, stdio: 'ignore' });
+
+  // Pinned away from the developer's git configuration, because two of its
+  // settings decide what these tests observe: `core.excludesFile`, since the
+  // script calls `ls-files --exclude-standard` and a global ignore would hide
+  // a file the test just created, and `core.quotepath`, whose default is the
+  // exact behaviour the non-ASCII case below exists to pin. Inherited, either
+  // would make a test pass or fail by machine rather than by code.
+  //
+  // Written into the repository rather than passed as `-c` on `init`: the
+  // later `git add` here, and the `git ls-files` inside the child process
+  // under test, are separate invocations that would each inherit the global
+  // value again.
+  /** @type {[string, string][]} */
+  const pins = [['core.excludesFile', ''], ['core.quotepath', 'true']];
+  for (const [key, value] of pins) {
+    execFileSync('git', ['config', key, value], { cwd: dir, stdio: 'ignore' });
+  }
 
   for (const [name, contents] of Object.entries(files)) {
     const full = join(dir, name);
@@ -192,23 +209,58 @@ describe('parseCodeRabbit', () => {
   });
 });
 
-describe('parseTsconfigInclude', () => {
+describe('parseTsconfigPaths', () => {
   it('reads include past line and block comments', () => {
-    expect(parseTsconfigInclude(`{
+    expect(parseTsconfigPaths(`{
   // leading note
   /* and a block
      spanning lines */
   "include": ["scripts/**/*", "vitest.config.ts"]
-}`)).toEqual(['scripts/**/*', 'vitest.config.ts']);
+}`).include).toEqual(['scripts/**/*', 'vitest.config.ts']);
   });
 
   it('does not mistake // inside a string for a comment', () => {
-    expect(parseTsconfigInclude('{ "include": ["https://example.com/x.ts"] }'))
+    expect(parseTsconfigPaths('{ "include": ["https://example.com/x.ts"] }').include)
       .toEqual(['https://example.com/x.ts']);
   });
 
-  it('returns an empty list when include is absent', () => {
-    expect(parseTsconfigInclude('{ "compilerOptions": { "strict": true } }')).toEqual([]);
+  it('accepts trailing commas, because tsc does', () => {
+    // Verified against the pinned compiler: `tsc -p` exits 0 on a tsconfig
+    // with trailing commas in both an object and an array. Rejecting one here
+    // would redden CI over a config TypeScript is perfectly happy with.
+    expect(parseTsconfigPaths(`{
+  "compilerOptions": { "strict": true, },
+  "include": ["a.ts", "b.ts",],
+}`).include).toEqual(['a.ts', 'b.ts']);
+  });
+
+  it('leaves a comma inside a string alone', () => {
+    // The reason trailing commas are removed by a walk and not by
+    // /,(?=\\s*[}\\]])/ — that pattern reaches into the value below.
+    expect(parseTsconfigPaths('{ "include": ["weird,}name.ts"] }').include)
+      .toEqual(['weird,}name.ts']);
+  });
+
+  it('reads files and exclude alongside include', () => {
+    const parsed = parseTsconfigPaths(`{
+  "files": ["drizzle.config.ts"],
+  "include": ["src/**/*"],
+  "exclude": ["src/generated/**"]
+}`);
+    expect(parsed).toEqual({
+      files: ['drizzle.config.ts'],
+      include: ['src/**/*'],
+      exclude: ['src/generated/**'],
+    });
+  });
+
+  it('returns empty lists when the keys are absent or not arrays', () => {
+    expect(parseTsconfigPaths('{ "compilerOptions": { "strict": true } }'))
+      .toEqual({ include: [], files: [], exclude: [] });
+    // A non-array `include`, and a non-string entry inside one: both are
+    // filtered rather than trusted into a matcher that would throw.
+    expect(parseTsconfigPaths('{ "include": "src/**/*", "files": ["a.ts", 42] }'))
+      .toEqual({ include: [], files: ['a.ts'], exclude: [] });
   });
 });
 
@@ -319,8 +371,9 @@ describe('the check as CI runs it', () => {
     const dir = await scratchRepo({
       '.coderabbit.yaml': HEALTHY_YAML,
       'tsconfig.json': APP_TSCONFIG,
-      // Trailing comma: readable, and rejected by JSON.parse.
-      'tsconfig.scripts.json': '{ "include": ["drizzle.config.ts",] }',
+      // Readable, and genuinely broken — not a trailing comma, which tsc
+      // accepts and so does this reader.
+      'tsconfig.scripts.json': '{ "include": ["drizzle.config.ts" }',
       'src/app.ts': '',
       'AGENTS.md': '',
       'drizzle.config.ts': '',
@@ -332,6 +385,54 @@ describe('the check as CI runs it', () => {
     // The follow-on false accusation: with a partial include set, a file the
     // broken config does list would be reported as escaping typecheck too.
     expect(stderr).not.toContain('is in no tsconfig');
+  });
+
+  it('accepts a tsconfig whose trailing commas tsc would accept', async () => {
+    const dir = await scratchRepo({
+      '.coderabbit.yaml': HEALTHY_YAML,
+      'tsconfig.json': APP_TSCONFIG,
+      'tsconfig.scripts.json': '{\n  "include": ["drizzle.config.ts",],\n}',
+      'src/app.ts': '',
+      'AGENTS.md': '',
+      'drizzle.config.ts': '',
+    });
+
+    const { code } = await runCli(dir);
+    expect(code).toBe(0);
+  });
+
+  it('does not call a file covered when exclude takes it back out', async () => {
+    // `exclude` filters what `include` found, so reading `include` alone said
+    // "type checked" about a file no tsc invocation compiles — silence, which
+    // is the one outcome this script exists to prevent.
+    const dir = await scratchRepo({
+      '.coderabbit.yaml': HEALTHY_YAML,
+      'tsconfig.json': APP_TSCONFIG,
+      'tsconfig.scripts.json':
+        '{ "include": ["drizzle.config.ts"], "exclude": ["drizzle.config.ts"] }',
+      'src/app.ts': '',
+      'AGENTS.md': '',
+      'drizzle.config.ts': '',
+    });
+
+    const { code, stderr } = await runCli(dir);
+    expect(code).toBe(1);
+    expect(stderr).toContain('drizzle.config.ts is in no tsconfig program');
+  });
+
+  it('counts a file named in files, which exclude does not filter', async () => {
+    const dir = await scratchRepo({
+      '.coderabbit.yaml': HEALTHY_YAML,
+      'tsconfig.json': APP_TSCONFIG,
+      'tsconfig.scripts.json':
+        '{ "files": ["drizzle.config.ts"], "exclude": ["drizzle.config.ts"] }',
+      'src/app.ts': '',
+      'AGENTS.md': '',
+      'drizzle.config.ts': '',
+    });
+
+    const { code } = await runCli(dir);
+    expect(code).toBe(0);
   });
 
   it('fails when the knowledge_base block is deleted outright', async () => {
@@ -352,9 +453,16 @@ describe('the check as CI runs it', () => {
     expect(stderr).toContain('lists no code_guidelines.filePatterns');
   });
 
-  it('fails when code_guidelines.enabled is dropped or turned off', async () => {
+  // Two cases, not one: `enabled: false` and a missing key reach the failure
+  // through different branches of `parseCodeRabbit` — `false` and `null` — and
+  // an earlier revision of this test named both while exercising only the
+  // first, leaving the branch that a plain deletion takes uncovered.
+  it.each([
+    ['turned off', HEALTHY_YAML.replace('enabled: true', 'enabled: false')],
+    ['dropped entirely', HEALTHY_YAML.replace('    enabled: true\n', '')],
+  ])('fails when code_guidelines.enabled is %s', async (_name, yaml) => {
     const dir = await scratchRepo({
-      '.coderabbit.yaml': HEALTHY_YAML.replace('enabled: true', 'enabled: false'),
+      '.coderabbit.yaml': yaml,
       'tsconfig.json': APP_TSCONFIG,
       'tsconfig.scripts.json': SCRIPTS_TSCONFIG,
       'src/app.ts': '',

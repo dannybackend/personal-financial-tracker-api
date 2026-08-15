@@ -127,6 +127,12 @@ export function parseCodeRabbit(source) {
   /** @type {boolean|null} */
   let guidelinesEnabled = null;
 
+  // Same tracking for `path_instructions`, because `- path:` is not unique to
+  // it — CodeRabbit's format uses the same item shape elsewhere, and a list
+  // under another key would otherwise be checked as though somebody had
+  // written it as a review instruction.
+  let instructionsIndent = -1;
+
   for (const raw of source.split(/\r?\n/u)) {
     // A whole-line comment reduces to '', which the list-termination check
     // below deliberately treats as "keep going" — so a comment sitting inside
@@ -139,9 +145,19 @@ export function parseCodeRabbit(source) {
     if (guidelinesIndent >= 0 && indent >= 0 && indent <= guidelinesIndent) {
       guidelinesIndent = -1;
     }
+    // The list items sit deeper than the key, so anything at or above the key's
+    // own indentation has left the block.
+    if (instructionsIndent >= 0 && indent >= 0 && indent <= instructionsIndent) {
+      instructionsIndent = -1;
+    }
 
     if (/^code_guidelines:\s*$/u.test(line)) {
       guidelinesIndent = indent;
+      continue;
+    }
+
+    if (/^path_instructions:\s*$/u.test(line)) {
+      instructionsIndent = indent;
       continue;
     }
 
@@ -150,7 +166,9 @@ export function parseCodeRabbit(source) {
       if (enabled) guidelinesEnabled = enabled[1] === 'true';
     }
 
-    const instruction = line.match(/^-\s*path:\s*["']?([^"']+?)["']?\s*$/u);
+    const instruction = instructionsIndent >= 0
+      ? line.match(/^-\s*path:\s*["']?([^"']+?)["']?\s*$/u)
+      : null;
     if (instruction?.[1]) {
       instructions.push(instruction[1]);
       inFilePatterns = false;
@@ -211,17 +229,49 @@ function stripComment(line) {
 }
 
 /**
- * Reads the `include` array of a tsconfig.
+ * Reads the three path keys of a tsconfig: `include`, `files` and `exclude`.
+ *
+ * All three are needed to answer "is this file type checked", and reading only
+ * `include` got it wrong in the direction that matters: `exclude` filters what
+ * `include` found, so a config listed in `include` and then excluded is not
+ * compiled at all while a check reading `include` alone calls it covered —
+ * silence, which is the one outcome this script exists to prevent. `files` is
+ * the opposite error: an explicit list that `exclude` deliberately does not
+ * filter, so a config named only there would be reported as escaping typecheck
+ * when it does not.
  *
  * Both configs carry block comments — that is how this repository explains its
- * tooling — so the text is stripped of comments before `JSON.parse`. Quoted
- * runs are consumed whole rather than scanned, because stripping naively would
- * corrupt any path containing `//`.
+ * tooling — so comments go before `JSON.parse`, with quoted runs consumed whole
+ * because stripping naively would corrupt any path containing `//`. Trailing
+ * commas go for the same reason: `tsc` reads these files as JSONC and accepts
+ * them (verified against the pinned compiler), so rejecting one would fail the
+ * build over a config TypeScript itself is perfectly happy with.
  *
  * @param {string} source - full text of a tsconfig
- * @returns {string[]} the `include` entries, empty when the key is absent
+ * @returns {{ include: string[], files: string[], exclude: string[] }} each
+ *   key's string entries, empty where the key is absent
  */
-export function parseTsconfigInclude(source) {
+export function parseTsconfigPaths(source) {
+  const parsed = /** @type {Record<string, unknown>} */ (
+    JSON.parse(stripTrailingCommas(stripJsonComments(source)))
+  );
+
+  /** @param {string} key @returns {string[]} */
+  const strings = (key) => {
+    const value = parsed[key];
+    return Array.isArray(value) ? value.filter((entry) => typeof entry === 'string') : [];
+  };
+
+  return { include: strings('include'), files: strings('files'), exclude: strings('exclude') };
+}
+
+/**
+ * Removes `//` and block comments, leaving string contents untouched.
+ *
+ * @param {string} source - JSONC text
+ * @returns {string} the same text with comments elided
+ */
+function stripJsonComments(source) {
   let out = '';
   let index = 0;
 
@@ -254,10 +304,49 @@ export function parseTsconfigInclude(source) {
     index += 1;
   }
 
-  const parsed = /** @type {{ include?: unknown }} */ (JSON.parse(out));
-  return Array.isArray(parsed.include)
-    ? parsed.include.filter((entry) => typeof entry === 'string')
-    : [];
+  return out;
+}
+
+/**
+ * Removes commas that sit before a closing brace or bracket.
+ *
+ * A second walk rather than a regular expression over the whole text: `,` and
+ * `}` can both appear inside a legitimate path string, and a bare
+ * `/,(?=\s*[}\]])/` would reach into `"a,}"` and change the value it was only
+ * supposed to punctuate.
+ *
+ * @param {string} json - JSON text with comments already removed
+ * @returns {string} the same text with trailing commas elided
+ */
+function stripTrailingCommas(json) {
+  let out = '';
+  let index = 0;
+
+  while (index < json.length) {
+    const char = json[index] ?? '';
+
+    if (char === '"') {
+      const closing = json.indexOf('"', index + 1);
+      if (closing === -1) break;
+      out += json.slice(index, closing + 1);
+      index = closing + 1;
+      continue;
+    }
+
+    if (char === ',') {
+      const rest = json.slice(index + 1);
+      const next = rest.trimStart()[0];
+      if (next === '}' || next === ']') {
+        index += 1;
+        continue;
+      }
+    }
+
+    out += char;
+    index += 1;
+  }
+
+  return out;
 }
 
 /**
@@ -380,11 +469,11 @@ export async function run() {
     }
   }
 
-  /** @type {string[]} */
-  const covered = [];
-  // Reading and parsing are reported separately: a trailing comma in an
-  // `include` array is a perfectly readable file that JSON.parse rejects, and
-  // calling that "cannot read" sends the operator looking for the wrong thing.
+  /** @type {{ include: string[], files: string[], exclude: string[] }[]} */
+  const tsconfigs = [];
+  // Reading and parsing are reported separately: a malformed `include` array is
+  // a perfectly readable file that JSON.parse rejects, and calling that "cannot
+  // read" sends the operator looking for the wrong thing.
   let tsconfigsIntact = true;
 
   for (const config of TSCONFIGS) {
@@ -399,11 +488,10 @@ export async function run() {
     }
 
     try {
-      covered.push(...parseTsconfigInclude(text));
+      tsconfigs.push(parseTsconfigPaths(text));
     } catch (cause) {
       problems.push(
-        `${config} is not parseable as JSON-with-comments (${formatCause(cause)}) — ` +
-        'a trailing comma in `include` is the usual cause',
+        `${config} is not parseable as JSON-with-comments (${formatCause(cause)})`,
       );
       tsconfigsIntact = false;
     }
@@ -416,18 +504,33 @@ export async function run() {
     return report(problems, instructions.length + filePatterns.length);
   }
 
-  if (covered.length === 0) {
+  if (tsconfigs.every((config) => config.include.length + config.files.length === 0)) {
     problems.push(
-      `parsed 0 include entries from ${TSCONFIGS.join(' and ')} — the reader and the files have diverged`,
+      `parsed no include or files entries from ${TSCONFIGS.join(' and ')} — the reader and the files have diverged`,
     );
     return report(problems, instructions.length + filePatterns.length);
   }
 
-  const includeMatchers = covered.map(globToRegExp);
+  // TypeScript's own rule, and the asymmetry is the point: `exclude` filters
+  // what `include` found and does not touch `files`, so a path named in `files`
+  // stays in the program however the exclusions read.
+  const compiled = tsconfigs.map((config) => ({
+    files: new Set(config.files),
+    include: config.include.map(globToRegExp),
+    exclude: config.exclude.map(globToRegExp),
+  }));
+
   for (const file of files.filter((candidate) => ROOT_CONFIG.test(candidate))) {
-    if (!includeMatchers.some((matcher) => matcher.test(file))) {
+    const covered = compiled.some(
+      (config) =>
+        config.files.has(file) ||
+        (config.include.some((matcher) => matcher.test(file)) &&
+          !config.exclude.some((matcher) => matcher.test(file))),
+    );
+
+    if (!covered) {
       problems.push(
-        `${file} is in no tsconfig \`include\` — it is never type checked. Add it to ` +
+        `${file} is in no tsconfig program — it is never type checked. Add it to ` +
         'tsconfig.scripts.json, which already covers repository tooling',
       );
     }
