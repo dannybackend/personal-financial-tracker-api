@@ -81,6 +81,13 @@ jobs:
       # No `npm ci` and no network, same as above.
       - run: npm run check:config-paths
 
+      # Folded into this job rather than given its own: same shape, same needs
+      # (no database, no install, no token, runs on forks), and the two answer
+      # the same question — does a generated claim about the repository still
+      # match the repository. A third near-identical job would only add a third
+      # required status check to keep in step with the workflow.
+      - run: npm run check:toc
+
   ci:
     runs-on: ubuntu-latest
 

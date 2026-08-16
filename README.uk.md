@@ -171,16 +171,13 @@ npm run dev
 npm run lint && npm run typecheck && npm test
 ```
 
-У CI є ще два гейти, кожен окремою джобою:
-
-- `npm run check:markers` — маркери відповідності в
-  [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) досі збігаються зі
-  станом issue, які вони називають. Потребує GitHub-токена, тому в рядок вище
-  не входить — як запустити локально, див.
-  [`docs/ONBOARDING.md`](docs/ONBOARDING.md).
-- `npm run check:config-paths` — шляхи, названі в конфігах тулінгу, ще
-  існують, і кожен кореневий `*.config.*` потрапляє в програму котрогось із
-  tsconfig. Ні токена, ні мережі не потребує; запускається як є.
+Поверх них CI має ще дві джоби, які звіряють документацію з кодом: чи не
+застаріли маркери відповідності в
+[`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md), чи існує ще те, на що
+вказують конфіги тулінгу, чи збігається опис CI з самим `ci.yml` і чи свіжий
+зміст довгих документів. Команди й що робити, коли котрась червоніє —
+[`CONTRIBUTING.md`](CONTRIBUTING.md) і
+[`docs/ONBOARDING.md`](docs/ONBOARDING.md).
 
 ---
 
@@ -191,7 +188,7 @@ npm run lint && npm run typecheck && npm test
 | [`AGENTS.md`](AGENTS.md) | Правила, які формують код у момент написання; вантажаться в кожен запит. Ситуативний workflow — у `.claude/skills/` і `.claude/hooks/` |
 | [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) | Обов'язковий наскрізний контракт API |
 | [`docs/BOOTSTRAP.md`](docs/BOOTSTRAP.md) | Процедура старту нового проєкту: які рішення прийняти до першої моделі даних, зібрані з того, як їх пропустили тут. Питання стек-агностичні, інструментарій — Claude Code |
-| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Append-only журнал архітектурних рішень |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Журнал архітектурних рішень — кожне з причиною, компромісом і відкинутими альтернативами |
 | [`docs/LEARNING.md`](docs/LEARNING.md) | Бекенд-концепції в міру їх першої появи в коді |
 | [`docs/ONBOARDING.md`](docs/ONBOARDING.md) | Локальний запуск із чистого checkout |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Статус чекпоінтів |
