@@ -184,6 +184,8 @@ describe('locateBlock', () => {
     ['only the start marker', START],
     ['only the end marker', END],
     ['the markers reversed', `${END}\nx\n${START}`],
+    ['two complete pairs', `${START}\nx\n${END}\n\n${START}\ny\n${END}`],
+    ['a duplicated start marker', `${START}\nx\n${START}\ny\n${END}`],
   ])('refuses %s', (_label, body) => {
     expect(locateBlock(wrap(body))).toBe('broken');
   });
@@ -220,7 +222,22 @@ describe('render', () => {
     const result = render(`# T\n\n${START}\n\nkeep me\n\n---\n\n## S\n`, 'docs/TEST.md', problems);
 
     expect(result).toBeNull();
-    expect(problems.join('\n')).toContain('only one of the two TOC markers');
+    expect(problems.join('\n')).toContain('exactly one TOC marker pair');
+  });
+
+  it('refuses a duplicated pair instead of silently degrading the document', () => {
+    // What a bad merge leaves when both sides generated an index. `indexOf` took
+    // the first pair, the second survived, and its `## Зміст` heading was then
+    // read as an ordinary section and listed inside the new index — the document
+    // got worse on every run and nothing was reported.
+    /** @type {string[]} */
+    const problems = [];
+    const doubled =
+      `# T\n\n${START}\n\n## Зміст\n\n- [S](#s)\n\n${END}\n\n` +
+      `${START}\n\n## Зміст\n\n- [S](#s)\n\n${END}\n\n---\n\n## S\n\n### E\n`;
+
+    expect(render(doubled, 'docs/TEST.md', problems)).toBeNull();
+    expect(problems.join('\n')).toContain('exactly one TOC marker pair');
   });
 
   it('reports a document with nowhere to put the block instead of throwing', () => {
@@ -267,7 +284,7 @@ describe('the CLI as CI runs it', () => {
         }));
 
       expect(outcome.code, `pass ${pass}`).toBe(1);
-      expect(outcome.stderr).toContain('only one of the two TOC markers');
+      expect(outcome.stderr).toContain('exactly one TOC marker pair');
     }
 
     const survived = await readFile(join(dir, 'docs/DECISIONS.md'), 'utf8');

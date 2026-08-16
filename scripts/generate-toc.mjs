@@ -270,6 +270,21 @@ function buildToc(doc, anchors, problems, path) {
 }
 
 /**
+ * How many times `needle` appears in `text`.
+ *
+ * @param {string} text
+ * @param {string} needle
+ * @returns {number}
+ */
+function occurrences(text, needle) {
+  let count = 0;
+  for (let at = text.indexOf(needle); at !== -1; at = text.indexOf(needle, at + needle.length)) {
+    count += 1;
+  }
+  return count;
+}
+
+/**
  * Decide where this document's TOC block goes, or why it cannot have one.
  *
  * Every answer is a value, including both failures. An earlier revision returned
@@ -283,15 +298,27 @@ function buildToc(doc, anchors, problems, path) {
  * and the next run then treated the orphan as the block start and deleted every
  * line between the two. There is no safe way to guess which half was intended.
  *
+ * A *duplicated* pair is refused for the same reason. Counting rather than taking
+ * the first of each matters: with two complete pairs — what a bad merge leaves
+ * when both sides generated an index — `indexOf` found the first pair, the second
+ * survived untouched, and its `## Зміст` heading was then read as an ordinary
+ * section and listed inside the new index. The document degraded on every run and
+ * nothing was reported.
+ *
  * @param {string} text
  * @returns {{ start: number, end: number } | { insertAt: number } | 'broken' | 'no-anchor'}
  */
 export function locateBlock(text) {
-  const start = text.indexOf(START);
-  const end = text.indexOf(END);
+  const starts = occurrences(text, START);
+  const ends = occurrences(text, END);
 
-  if (start !== -1 && end !== -1 && end > start) return { start, end };
-  if (start !== -1 || end !== -1) return 'broken';
+  if (starts === 1 && ends === 1) {
+    const start = text.indexOf(START);
+    const end = text.indexOf(END);
+    if (end > start) return { start, end };
+    return 'broken';
+  }
+  if (starts !== 0 || ends !== 0) return 'broken';
 
   // No markers yet: the block goes above the first `---` rule, after the intro.
   const rule = text.indexOf('\n---\n');
@@ -340,9 +367,10 @@ export function render(raw, path, problems) {
 
   if (block === 'broken') {
     problems.push(
-      `${path} has only one of the two TOC markers, or they are out of order. ` +
-      `Restore the pair (${START} … ${END}) by hand — writing a second block ` +
-      'here would make the next run delete everything between them',
+      `${path} does not carry exactly one TOC marker pair — one of the two is ` +
+      `missing, they are out of order, or a pair is duplicated. Restore a single ` +
+      `${START} … ${END} by hand: writing a block against a broken pair either ` +
+      'deletes everything between the strays or leaves a second index behind',
     );
     return null;
   }
@@ -406,11 +434,17 @@ function run(check) {
   const stale = [];
   let wrote = 0;
 
-  // Render everything first, write nothing yet. A document whose index came out
-  // incomplete must not reach disk: an index that is merely stale announces
-  // itself on the next `--check`, while one that is confidently wrong does not.
-  // All-or-nothing also keeps a mid-run failure from leaving the set half
-  // rewritten.
+  // Render everything first, write nothing yet. The guarantee is about decisions,
+  // not about the filesystem: if any document produced a problem, no document is
+  // written at all, because an index that is confidently wrong does not announce
+  // itself while a merely stale one does, on the next `--check`.
+  //
+  // It is deliberately *not* a transaction. A write that fails partway leaves
+  // earlier documents already updated, and that is accepted: every output here is
+  // regenerable by re-running `npm run toc`, the inputs are tracked by git, and
+  // `check:toc` reports whatever stayed behind. Staging through temporary files
+  // with backups and rollback would add more failure modes than it removes — a
+  // half-restored backup is worse than a stale table of contents.
   /** @type {{ path: string, full: string, text: string }[]} */
   const pending = [];
 

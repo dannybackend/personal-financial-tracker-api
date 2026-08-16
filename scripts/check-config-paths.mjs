@@ -816,13 +816,25 @@ export async function run() {
   const ciSources = await Promise.all(
     [WORKFLOW, 'package.json', ...CI_DOCS].map(async (path) => {
       try {
-        return { path, text: await readFile(path, 'utf8') };
+        return { path, text: await readFile(path, 'utf8'), cause: null };
       } catch (cause) {
-        problems.push(`cannot read ${path} (${formatCause(cause)}) — CI surface not checked`);
-        return { path, text: null };
+        return { path, text: null, cause };
       }
     }),
   );
+
+  // Reported after every read settles, in the order the paths were listed.
+  // Pushing from inside the concurrent callbacks ordered the output by whichever
+  // file happened to fail first, so two runs against the same broken tree could
+  // print the same problems in a different order — noise in a CI log diff, and a
+  // trap for anything reading `problems` by index.
+  for (const source of ciSources) {
+    if (source.text === null) {
+      problems.push(
+        `cannot read ${source.path} (${formatCause(source.cause)}) — CI surface not checked`,
+      );
+    }
+  }
 
   const readSource = (/** @type {string} */ path) =>
     ciSources.find((source) => source.path === path)?.text ?? null;

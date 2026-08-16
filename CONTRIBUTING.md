@@ -71,7 +71,11 @@ needs a GitHub token (`docs/ONBOARDING.md` → "Корисні команди").
 If an agent wrote 30+ lines and you cannot explain what each block does and why — stop. Ask it to explain, then close and rewrite it yourself.
 
 ## Architecture Decisions
-Significant decisions (schema design, auth approach, caching strategy) must be documented in a short comment at the top of the relevant file or in `/docs` before implementation begins.
+Significant decisions (schema design, auth approach, caching strategy) go in
+`docs/DECISIONS.md`, written per the format in that file's own header, before
+implementation begins. That header is the only statement of the entry format and
+of how a correction is recorded; `AGENTS.md` and the pull request template point
+there rather than restating it, and so does this line.
 
 ## Environment Variables
 - Never commit `.env`
