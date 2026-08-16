@@ -30,6 +30,8 @@ import { readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
+import { formatCause, markFailed } from './lib/report.mjs';
+
 const DEFAULT_DOC_PATH = 'docs/API-CONVENTIONS.md';
 
 /** One GraphQL round trip; generous for an API call, short of a hung job. */
@@ -365,22 +367,6 @@ export async function run(docPath = DEFAULT_DOC_PATH) {
 }
 
 /**
- * Renders a thrown value as a one-line cause. `catch` binds `unknown`, and a
- * non-Error throw would otherwise print as `undefined` and destroy the only
- * diagnostic the operator had.
- *
- * Identical to the copy in `check-config-paths.mjs`, and deliberately not
- * shared — see docs/DECISIONS.md → "Перевірка шляхів у конфігах тулінгу",
- * which names the third check script as the trigger for extracting it.
- *
- * @param {unknown} cause - whatever was thrown
- * @returns {string} a printable description
- */
-function formatCause(cause) {
-  return cause instanceof Error ? cause.message : String(cause);
-}
-
-/**
  * Prints the outcome. The success line is printed **only** on success: an
  * earlier revision logged it unconditionally, so a failing run ended by
  * announcing that everything was fine.
@@ -399,9 +385,7 @@ function report(docPath, problems, checked) {
   console.error(`${docPath} markers are out of step with reality:\n`);
   for (const problem of problems) console.error(`  - ${problem}`);
   console.error(`\nLegend and flip rule: ${docPath}, "Conformance markers".`);
-  // `exitCode`, not `exit(1)`: exiting outright tears the process down while
-  // stderr is still draining and aborts with a libuv assertion on Windows.
-  process.exitCode = 1;
+  markFailed();
 }
 
 // Only when executed directly, so the parser above can be imported by tests.

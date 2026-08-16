@@ -3,7 +3,7 @@
 > Cross-cutting invariants every endpoint in this API must obey.
 >
 > **Why this file exists:** `AGENTS.md` says *how to work*; `docs/DECISIONS.md`
-> records *what was decided and why*, append-only. Neither is a place to look
+> records *what was decided and why*. Neither is a place to look
 > up "what shape does a money field have" while writing a handler. Without a
 > single contract, each module re-invents its own — and the modules stop
 > agreeing with each other.

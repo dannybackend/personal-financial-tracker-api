@@ -16,7 +16,7 @@ a data model the project rejected in its first decision.
 Tick what applies. `n/a` is a valid answer — write it instead of leaving a box
 blank, so the difference between "did not apply" and "forgot" stays visible.
 
-- [ ] **Made an architectural decision** (schema, cascade behaviour, auth, caching, indexing, data types) → new entry appended to `docs/DECISIONS.md`. Append only — never rewrite or delete an existing entry; corrections go in as a new "Уточнення" entry.
+- [ ] **Made an architectural decision** (schema, cascade behaviour, auth, caching, indexing, data types) → new entry in `docs/DECISIONS.md`, written per that file's header, which is the only statement of the entry format and of how corrections are recorded.
 - [ ] **Completed a checkpoint or task** → item checked off in `docs/PROGRESS.md`. Work discovered along the way is added as a new unchecked item, not silently dropped.
 - [ ] **Added or changed an endpoint** → matching request added or updated in `api.http`.
 - [ ] **Introduced a backend concept for the first time** (migrations, transactions, indexes, middleware, rate limiting, queues, caching, OpenAPI, CI, deployment…) → entry appended to `docs/LEARNING.md`.
@@ -37,8 +37,9 @@ npm run lint && npm run typecheck && npm test
 ```
 
 - [ ] All three pass locally
-- [ ] `npm run check:config-paths` passes — CI runs it as its own job. It needs no token and no network, so there is nothing to arrange before running it
-- [ ] `npm run check:markers` passes — CI runs it as its own job, and it needs a GitHub token, which is why it is not in the line above (`docs/ONBOARDING.md` → "Корисні команди")
+- [ ] `npm run check:config-paths` passes — it needs no token and no network, so there is nothing to arrange before running it
+- [ ] `npm run check:toc` passes — regenerate with `npm run toc` after adding or renaming an entry in a document that carries a table of contents
+- [ ] `npm run check:markers` passes — needs a GitHub token, which is why it is not in the line above (`docs/ONBOARDING.md` → "Корисні команди")
 
 ## After CodeRabbit reviews
 

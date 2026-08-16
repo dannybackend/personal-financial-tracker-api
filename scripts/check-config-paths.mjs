@@ -51,8 +51,19 @@ import { readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
+import { formatCause, markFailed } from './lib/report.mjs';
+
 const CODERABBIT = '.coderabbit.yaml';
 const TSCONFIGS = ['tsconfig.json', 'tsconfig.scripts.json'];
+const WORKFLOW = '.github/workflows/ci.yml';
+const CONTRIBUTING = 'CONTRIBUTING.md';
+
+/**
+ * Documents that instruct a contributor to run the checks, and so must name the
+ * same set `ci.yml` runs. See `checkCiSurface` for why membership is this rule
+ * and not a longer list.
+ */
+const CI_DOCS = [CONTRIBUTING, '.github/pull_request_template.md'];
 
 /** Root-level configuration this repository expects to be type checked. */
 const ROOT_CONFIG = /^[^/]+\.config\.(?:ts|js|mts|cts|mjs|cjs)$/u;
@@ -511,6 +522,255 @@ export function repoFiles() {
 }
 
 /**
+ * Reads the CI surface out of the workflow: which jobs exist, and which npm
+ * scripts they run.
+ *
+ * Line-oriented for the same reason as the `.coderabbit.yaml` reader — Node ships
+ * no YAML parser and this job must answer in seconds without `npm ci`. Job ids
+ * are the two-space keys under `jobs:`; scripts are every `npm run <name>` the
+ * file executes.
+ *
+ * @param {string} yaml - contents of the workflow
+ * @returns {{ jobs: string[], scripts: string[] }}
+ */
+export function parseWorkflow(yaml) {
+  /** @type {string[]} */
+  const jobs = [];
+  /** @type {string[]} */
+  const scripts = [];
+  let inJobs = false;
+
+  // Both halves read the same comment-stripped lines. Reading job ids from the
+  // stripped text and scripts from the raw text made a commented-out step look
+  // live, and the consequence ran backwards: temporarily disabling a check in CI
+  // would leave this invariant demanding every document keep claiming CI runs
+  // it — cementing the exact false statement the check exists to catch.
+  for (const raw of yaml.split(/\r?\n/)) {
+    const line = stripComment(raw);
+
+    if (/^jobs:\s*$/u.test(line)) {
+      inJobs = true;
+    } else {
+      // Any key back at column 0 ends the jobs block.
+      if (inJobs && /^\S/u.test(line)) inJobs = false;
+
+      const job = inJobs ? /^ {2}([A-Za-z_][\w-]*):\s*$/u.exec(line) : null;
+      if (job?.[1] !== undefined) jobs.push(job[1]);
+    }
+
+    for (const match of line.matchAll(/npm run ([\w:-]+)/gu)) {
+      const name = match[1];
+      if (name !== undefined && !scripts.includes(name)) scripts.push(name);
+    }
+  }
+
+  return { jobs, scripts };
+}
+
+/**
+ * Reads the `scripts` map out of a package manifest.
+ *
+ * `JSON.parse` hands back `any`, which `AGENTS.md` forbids ("No `any` — use
+ * `unknown` and narrow"). The narrowing is not ceremony: a manifest that parses
+ * to an array, a string, or an object with no `scripts` would otherwise fall
+ * through to `{}` and make every script in the workflow report as undefined —
+ * a page of confident complaints pointing at `ci.yml` instead of at the file
+ * that is actually malformed.
+ *
+ * @param {string} source - contents of package.json
+ * @returns {Record<string, unknown>} the scripts map, empty only when genuinely absent
+ * @throws {Error} when the manifest is not an object, or `scripts` is not one
+ */
+export function packageScripts(source) {
+  /** @type {unknown} */
+  const manifest = JSON.parse(source);
+  if (typeof manifest !== 'object' || manifest === null || Array.isArray(manifest)) {
+    throw new Error('package.json does not parse to an object');
+  }
+
+  const scripts = /** @type {Record<string, unknown>} */ (manifest).scripts;
+  if (scripts === undefined) return {};
+  if (typeof scripts !== 'object' || scripts === null || Array.isArray(scripts)) {
+    throw new Error('package.json has a `scripts` key that is not an object');
+  }
+
+  return /** @type {Record<string, unknown>} */ (scripts);
+}
+
+/**
+ * @typedef {{ spans: Set<string>, unbalancedFence: boolean }} DocumentNames
+ */
+
+/**
+ * Reads every name a document *states* — each inline code span outside a fenced
+ * block — once, so that every question about that document is answered from the
+ * same set.
+ *
+ * Parsing once is not an optimisation here, it is what keeps the two directions
+ * honest. While each comparison held its own text and its own regex, they drifted
+ * apart twice: the forward check learned to skip fenced blocks and the reverse
+ * one kept scanning them, so a document that quoted its own failure output was
+ * reported for naming a check CI does not run. Sharing one parsed set makes that
+ * class of disagreement unrepresentable rather than merely fixed.
+ *
+ * *States* means an exact span, and that rule took three attempts. A bare
+ * `includes` found `ci` inside the word "decisions", so the repository's main job
+ * could never be reported as undocumented. Requiring backticks and token
+ * boundaries also passed, because `` `.github/workflows/ci.yml` `` and
+ * `` `npm ci` `` both contain `ci` bounded by punctuation. Only span equality
+ * resists both, and it is how these documents already write names.
+ *
+ * Fenced blocks are dropped rather than searched: their triple backticks
+ * desynchronise the pairing for everything after them — measured on
+ * `CONTRIBUTING.md`, the first fence hid every later span, all three check names
+ * included — and a name inside a worked example is not a claim about CI anyway.
+ * An odd number of fence markers is reported instead of silently swallowing the
+ * tail, on the same principle as "parsed zero entries is a failure": a reader
+ * that quietly examines half a document is worse than one that stops.
+ *
+ * @param {string} text - document contents
+ * @returns {DocumentNames} the names it states, and whether its fences balance
+ */
+export function documentNames(text) {
+  /** @type {string[]} */
+  const prose = [];
+  let fences = 0;
+  let inFence = false;
+
+  for (const line of text.split(/\r?\n/)) {
+    if (line.trimStart().startsWith('```')) {
+      fences += 1;
+      inFence = !inFence;
+      continue;
+    }
+    if (!inFence) prose.push(line);
+  }
+
+  /** @type {Set<string>} */
+  const spans = new Set();
+  for (const match of prose.join('\n').matchAll(/`([^`]+)`/gu)) {
+    const span = match[1]?.trim();
+    if (span !== undefined && span !== '') spans.add(span);
+  }
+
+  return { spans, unbalancedFence: fences % 2 !== 0 };
+}
+
+/**
+ * Does this document name `token` — as itself, or as the command that runs it?
+ *
+ * @param {DocumentNames} names
+ * @param {string} token - job id or npm script name
+ * @returns {boolean}
+ */
+function states(names, token) {
+  return names.spans.has(token) || names.spans.has(`npm run ${token}`);
+}
+
+/**
+ * Checks that the CI surface still matches what the repository says about it.
+ *
+ * `docs/PROGRESS.md` carried this as an open item: the documents that tell a
+ * contributor what to run name jobs and checks from `ci.yml` in prose, and
+ * nothing compared the two. The item predicted the recurrence exactly — adding a
+ * third check produced a `CONTRIBUTING.md` sentence claiming the pull request
+ * template requires `check:toc` when the template had no such box.
+ *
+ * Scoped to the `check:*` family on purpose. `typecheck`, `lint` and `test` are
+ * described collectively ("all three") rather than enumerated, so demanding an
+ * individual mention of each would report prose that is already correct. The
+ * `check:*` scripts are the ones these documents name one by one, and the ones
+ * that have now drifted twice.
+ *
+ * Membership in `docs` is the other half of the scoping, and it is a rule rather
+ * than a list: a document belongs here when it *instructs* the reader to run the
+ * checks. That is why the READMEs are absent — they describe what CI does at a
+ * level that does not name commands — and why `docs/ONBOARDING.md` is absent
+ * despite naming every one of them: it documents local invocation, so gating it
+ * would report the difference between "how to run" and "what CI runs" as an
+ * error.
+ *
+ * @param {{ jobs: string[], scripts: string[] }} workflow
+ * @param {Record<string, unknown>} packageScripts - `scripts` from package.json
+ * @param {Map<string, string>} docs - path → contents, for documents describing CI
+ * @param {string[]} problems - appended to
+ * @returns {void}
+ */
+export function checkCiSurface(workflow, packageScripts, docs, problems) {
+  const { jobs, scripts } = workflow;
+
+  // Reader sanity, the same gate as everywhere else here: parsing nothing out of
+  // a file that plainly declares the key is divergence, not success.
+  if (jobs.length === 0 || scripts.length === 0) {
+    problems.push(
+      `parsed ${jobs.length} jobs and ${scripts.length} npm scripts from ${WORKFLOW} — ` +
+      'the reader and the workflow have diverged',
+    );
+    return;
+  }
+
+  for (const script of scripts) {
+    if (!Object.hasOwn(packageScripts, script)) {
+      problems.push(`${WORKFLOW} runs \`npm run ${script}\`, which package.json does not define`);
+    }
+  }
+
+  const checks = scripts.filter((script) => script.startsWith('check:'));
+
+  // One parse per document, read by every comparison below.
+  /** @type {Map<string, DocumentNames>} */
+  const named = new Map();
+  for (const [path, text] of docs) named.set(path, documentNames(text));
+
+  for (const [path, names] of named) {
+    if (names.unbalancedFence) {
+      problems.push(
+        `${path} has an odd number of \`\`\` fence markers, so everything after the ` +
+        'unclosed one reads as code and no name in it can be seen. Close the fence',
+      );
+      continue;
+    }
+
+    for (const script of checks) {
+      if (!states(names, script)) {
+        problems.push(
+          `${WORKFLOW} runs \`npm run ${script}\` but ${path} never names it — ` +
+          'that document tells a contributor which checks to run',
+        );
+      }
+    }
+
+    // The other direction, off the same set: a document naming a check CI no
+    // longer runs is the same lie pointing the other way.
+    for (const span of names.spans) {
+      const stated = /^(?:npm run )?(check:[\w-]+)$/u.exec(span)?.[1];
+      if (stated !== undefined && !checks.includes(stated)) {
+        problems.push(`${path} names \`${stated}\`, which ${WORKFLOW} does not run`);
+      }
+    }
+  }
+
+  const contributing = named.get(CONTRIBUTING);
+  if (contributing !== undefined && !contributing.unbalancedFence) {
+    // Jobs are checked one way only. `check:` is a namespace, so a stated script
+    // CI does not run is unmistakable; a job id is an ordinary word, and no rule
+    // separates the span `markers` naming a removed job from the same span used
+    // in prose. Guessing would need either a heuristic over kebab-case words or a
+    // parser tied to this file's bullet layout — the document serving the check
+    // rather than the other way round. The residue is narrow: removing a job
+    // usually removes its `check:*` script too, and the loop above catches that.
+    for (const job of jobs) {
+      if (!states(contributing, job)) {
+        problems.push(
+          `${WORKFLOW} defines job \`${job}\`, which ${CONTRIBUTING} does not name — ` +
+          'its Testing section is where the job list is written down',
+        );
+      }
+    }
+  }
+}
+
+/**
  * Runs the check and reports. Every failure — including an unreadable config
  * and running outside a work tree — goes through `report`, so none of them
  * reaches the user as an uncaught stack trace.
@@ -544,6 +804,59 @@ export async function run() {
       ],
       0,
     );
+  }
+
+  // The CI surface is independent of everything below, so a failure to read it
+  // is a problem in the list rather than an early return: the CodeRabbit and
+  // tsconfig invariants still have answers worth printing in the same run.
+  //
+  // Read concurrently and reported per file. One shared try around all of them
+  // meant the first missing document masked every other CI-surface answer, which
+  // is the failure this script is written to prevent, one level up.
+  const ciSources = await Promise.all(
+    [WORKFLOW, 'package.json', ...CI_DOCS].map(async (path) => {
+      try {
+        return { path, text: await readFile(path, 'utf8'), cause: null };
+      } catch (cause) {
+        return { path, text: null, cause };
+      }
+    }),
+  );
+
+  // Reported after every read settles, in the order the paths were listed.
+  // Pushing from inside the concurrent callbacks ordered the output by whichever
+  // file happened to fail first, so two runs against the same broken tree could
+  // print the same problems in a different order — noise in a CI log diff, and a
+  // trap for anything reading `problems` by index.
+  for (const source of ciSources) {
+    if (source.text === null) {
+      problems.push(
+        `cannot read ${source.path} (${formatCause(source.cause)}) — CI surface not checked`,
+      );
+    }
+  }
+
+  const readSource = (/** @type {string} */ path) =>
+    ciSources.find((source) => source.path === path)?.text ?? null;
+
+  const workflowText = readSource(WORKFLOW);
+  const manifestText = readSource('package.json');
+  /** @type {Map<string, string>} */
+  const ciDocs = new Map();
+  for (const path of CI_DOCS) {
+    const text = readSource(path);
+    if (text !== null) ciDocs.set(path, text);
+  }
+
+  // Only when every input arrived. Comparing against a partial document set
+  // would report a check as undocumented because its document failed to load —
+  // a second, false complaint about the first one.
+  if (workflowText !== null && manifestText !== null && ciDocs.size === CI_DOCS.length) {
+    try {
+      checkCiSurface(parseWorkflow(workflowText), packageScripts(manifestText), ciDocs, problems);
+    } catch (cause) {
+      problems.push(`cannot check the CI surface (${formatCause(cause)})`);
+    }
   }
 
   const { instructions, filePatterns, guidelinesEnabled } = parseCodeRabbit(yaml);
@@ -669,22 +982,6 @@ export async function run() {
 }
 
 /**
- * Renders a thrown value as a one-line cause. `catch` binds `unknown`, and a
- * non-Error throw would otherwise print as `undefined` and destroy the only
- * diagnostic the operator had.
- *
- * Identical to the copy in `check-conformance-markers.mjs`, and deliberately
- * not shared — see docs/DECISIONS.md → "Перевірка шляхів у конфігах тулінгу",
- * which names the third check script as the trigger for extracting it.
- *
- * @param {unknown} cause - whatever was thrown
- * @returns {string} a printable description
- */
-function formatCause(cause) {
-  return cause instanceof Error ? cause.message : String(cause);
-}
-
-/**
  * Prints the outcome. The success line is printed **only** on success.
  *
  * @param {string[]} problems - everything wrong, empty when the check passes
@@ -695,17 +992,18 @@ function report(problems, checked) {
   if (problems.length === 0) {
     console.log(
       `${CODERABBIT}: ${checked} patterns checked, all match tracked files; ` +
-      'every root config is type checked.',
+      `every root config is type checked; ${WORKFLOW} matches what the docs claim it runs.`,
     );
     return;
   }
 
-  console.error('Tooling config names paths that do not exist:\n');
+  console.error('Tooling configuration and the prose describing it have diverged:\n');
   for (const problem of problems) console.error(`  - ${problem}`);
-  console.error('\nA pattern that matches nothing is silently ignored by the tool it configures.');
-  // `exitCode`, not `exit(1)`: exiting outright tears the process down while
-  // stderr is still draining and aborts with a libuv assertion on Windows.
-  process.exitCode = 1;
+  console.error(
+    '\nA pattern that matches nothing is silently ignored by the tool it configures, ' +
+    'and a document naming a check nobody runs reads exactly like one that works.',
+  );
+  markFailed();
 }
 
 // Only when executed directly, so the readers above can be imported by tests.

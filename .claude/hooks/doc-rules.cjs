@@ -119,7 +119,7 @@ function rulesFor(p, root, isCreate) {
       'Schema changed. AGENTS.md rules that apply now:',
       '- generate the migration (`npm run db:generate`) - schema edits without one drift silently',
       '- if the migration introduces a backend concept for the first time in this project (indexes, constraints, transactions, soft delete...), append an entry to docs/LEARNING.md',
-      '- if this involved a trade-off between viable approaches, append an entry to docs/DECISIONS.md (append only; corrections go in as a new "Уточнення" entry)',
+      '- if this involved a trade-off between viable approaches, add an entry to docs/DECISIONS.md, written per the format in that file\'s own header',
       // Prose sections, not a diagram - neither README has an ERD. This line
       // said "Mermaid ERD" from the hook's first commit until issue #76 and
       // pointed at nothing the whole time. The planned ERD belongs to

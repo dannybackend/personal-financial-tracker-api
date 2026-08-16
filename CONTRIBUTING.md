@@ -61,9 +61,9 @@ npm test
 CI runs these three on every PR, so this is not a duplicate check — it is the
 same check, ten minutes earlier. Two further jobs run beside them (see Testing
 below), and [`.github/pull_request_template.md`](.github/pull_request_template.md)
-requires both before a PR is opened: `npm run check:config-paths`, which needs
-nothing, and `npm run check:markers`, which needs a GitHub token
-(`docs/ONBOARDING.md` → "Корисні команди").
+requires them before a PR is opened: `npm run check:config-paths` and
+`npm run check:toc`, which need nothing, and `npm run check:markers`, which
+needs a GitHub token (`docs/ONBOARDING.md` → "Корисні команди").
 
 ## Working With AI Agents
 
@@ -71,7 +71,11 @@ nothing, and `npm run check:markers`, which needs a GitHub token
 If an agent wrote 30+ lines and you cannot explain what each block does and why — stop. Ask it to explain, then close and rewrite it yourself.
 
 ## Architecture Decisions
-Significant decisions (schema design, auth approach, caching strategy) must be documented in a short comment at the top of the relevant file or in `/docs` before implementation begins.
+Significant decisions (schema design, auth approach, caching strategy) go in
+`docs/DECISIONS.md`, written per the format in that file's own header, before
+implementation begins. That header is the only statement of the entry format and
+of how a correction is recorded; `AGENTS.md` and the pull request template point
+there rather than restating it, and so does this line.
 
 ## Environment Variables
 - Never commit `.env`
@@ -87,15 +91,16 @@ Significant decisions (schema design, auth approach, caching strategy) must be d
     PostgreSQL service container, so a green run also proves the migrations
     still apply to an empty database — something a local run against a
     long-lived dev volume never checks.
-  - `markers` runs `check:markers` and `config-paths` runs
-    `check:config-paths`. Each is one command with no database and no
-    `npm ci`, so a docs-only PR gets its answer in seconds instead of waiting
-    on Postgres and the suite. `markers` is skipped on forks — a fork does not
-    inherit this repository's issue list, so every marker would resolve to
-    "does not exist"; `config-paths` reads no issues and runs there too.
-  - **Nothing checks this list** — neither job opens this file. It was short by
-    one from the day `markers` landed and by two after `config-paths`. Update
-    it by hand when a job is added.
+  - `markers` runs `check:markers`. `config-paths` runs `check:config-paths`
+    and `check:toc`. Each command needs no database and no `npm ci`, so a
+    docs-only PR gets its answer in seconds instead of waiting on Postgres and
+    the suite. `markers` is skipped on forks — a fork does not inherit this
+    repository's issue list, so every marker would resolve to "does not
+    exist"; `config-paths` reads no issues and runs there too.
+  - **This list is checked.** `config-paths` reads this file and fails when a
+    job or a `check:*` script named here and in `ci.yml` disagree, in either
+    direction. It used to say nothing checked it, and it was short by one from
+    the day `markers` landed and by two after `config-paths`.
 - CI needs no repository secret. `BETTER_AUTH_SECRET` is a literal in the
   workflow (32+ characters, signing nothing real), because a `secrets.*`
   reference comes back empty in every run GitHub withholds secrets from — pull

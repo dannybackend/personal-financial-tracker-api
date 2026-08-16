@@ -127,8 +127,8 @@ raises the ones with a reliable file trigger at the moment they apply.
 
 - **Architectural decision** — any trade-off between viable approaches (schema
   design, cascade/delete behaviour, auth strategy, caching, indexing, data
-  types) → append to `docs/DECISIONS.md`. Append only; corrections go in as a
-  new "Уточнення" entry that names the record it supersedes.
+  types) → add an entry to `docs/DECISIONS.md`. How entries are written and how
+  a correction is recorded is stated in that file's header, and nowhere else.
 - **Backend concept appearing for the first time** (migrations, transactions,
   indexes, middleware, rate limiting, queues, caching, OpenAPI, CI, deploy…) →
   append to `docs/LEARNING.md`.

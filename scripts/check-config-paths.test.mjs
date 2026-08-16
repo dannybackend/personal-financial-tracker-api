@@ -9,6 +9,10 @@ import {
   parseCodeRabbit,
   parseTsconfigPaths,
   tsconfigGlobToRegExp,
+  parseWorkflow,
+  checkCiSurface,
+  documentNames,
+  packageScripts,
 } from './check-config-paths.mjs';
 
 // Absolute, because the CLI cases run the script with `cwd` pointing at a
@@ -27,16 +31,45 @@ afterAll(async () => {
 });
 
 /**
+ * A CI surface that satisfies the workflow/prose invariant, so that tests about
+ * globs and tsconfig coverage do not have to model the whole repository.
+ *
+ * Supplied by default and overridable per test: a case that means to exercise
+ * the CI-surface check passes its own version of these. Without a default, every
+ * unrelated fixture would carry six files it does not care about, and the first
+ * person to add a test would delete the check instead.
+ *
+ * @type {Record<string, string>}
+ */
+const HEALTHY_CI = {
+  '.github/workflows/ci.yml': [
+    'jobs:',
+    '  config-paths:',
+    '    steps:',
+    '      - run: npm run check:config-paths',
+    '  ci:',
+    '    steps:',
+    '      - run: npm test',
+  ].join('\n'),
+  'package.json': JSON.stringify({
+    scripts: { 'check:config-paths': 'node scripts/check-config-paths.mjs', test: 'vitest run' },
+  }),
+  'CONTRIBUTING.md': 'Jobs: `config-paths` and `ci`. Runs `npm run check:config-paths`.',
+  '.github/pull_request_template.md': '- [ ] `npm run check:config-paths` passes',
+};
+
+/**
  * Builds a throwaway git repository containing the given files.
  *
  * The files are staged but never committed: `git ls-files` reports the index,
  * so staging is enough, and committing would need an identity this test has no
  * business configuring.
  *
- * @param {Record<string, string>} files - repo-relative path to contents
+ * @param {Record<string, string>} overrides - repo-relative path to contents
  * @returns {Promise<string>} path to the repository root
  */
-async function scratchRepo(files) {
+async function scratchRepo(overrides) {
+  const files = { ...HEALTHY_CI, ...overrides };
   const dir = await mkdtemp(join(tmpdir(), 'config-paths-'));
   scratch.push(dir);
 
@@ -606,5 +639,236 @@ describe('the check as CI runs it', () => {
     const { code, stderr } = await runCli(dir);
     expect(code).toBe(1);
     expect(stderr).toContain('parsed 0 path instructions');
+  });
+});
+
+describe('parseWorkflow', () => {
+  const WORKFLOW = [
+    'name: CI',
+    'on:',
+    '  pull_request:',
+    'jobs:',
+    '  markers:',
+    '    steps:',
+    '      - run: npm run check:markers',
+    '  ci:',
+    '    services:',
+    '      postgres:',
+    '    steps:',
+    '      - run: npm ci',
+    '      - run: npm run typecheck',
+  ].join('\n');
+
+  it('reads the job ids and the npm scripts the workflow runs', () => {
+    expect(parseWorkflow(WORKFLOW)).toEqual({
+      jobs: ['markers', 'ci'],
+      scripts: ['check:markers', 'typecheck'],
+    });
+  });
+
+  it('does not mistake a nested key for a job', () => {
+    // `postgres:` sits four spaces deep under `services:`. Counting it a job
+    // would demand CONTRIBUTING.md document a job that does not exist.
+    expect(parseWorkflow(WORKFLOW).jobs).not.toContain('postgres');
+  });
+
+  it('stops at the end of the jobs block', () => {
+    const trailing = `${WORKFLOW}\npermissions:\n  contents: read\n`;
+    expect(parseWorkflow(trailing).jobs).toEqual(['markers', 'ci']);
+  });
+
+  it('ignores a job that is only mentioned in a comment', () => {
+    const commented = WORKFLOW.replace('  ci:', '  # ci:\n  ci:');
+    expect(parseWorkflow(commented).jobs).toEqual(['markers', 'ci']);
+  });
+});
+
+describe('checkCiSurface', () => {
+  const WORKFLOW = { jobs: ['config-paths'], scripts: ['check:config-paths', 'test'] };
+  const PACKAGE = { 'check:config-paths': '...', test: '...' };
+
+  /** @returns {Map<string, string>} docs that all name the check */
+  const healthyDocs = () => new Map([
+    ['CONTRIBUTING.md', 'job `config-paths` runs `npm run check:config-paths`'],
+    ['.github/pull_request_template.md', '`npm run check:config-paths` passes'],
+  ]);
+
+  it('passes when the workflow and the prose agree', () => {
+    /** @type {string[]} */
+    const problems = [];
+    checkCiSurface(WORKFLOW, PACKAGE, healthyDocs(), problems);
+    expect(problems).toEqual([]);
+  });
+
+  it('flags a check CI runs that a document never names', () => {
+    // The finding this invariant was built for: adding `check:toc` to ci.yml
+    // left the pull request template, and both READMEs, silently short.
+    /** @type {string[]} */
+    const problems = [];
+    const docs = healthyDocs();
+    checkCiSurface(
+      { jobs: ['config-paths'], scripts: ['check:config-paths', 'check:toc'] },
+      { ...PACKAGE, 'check:toc': '...' },
+      docs,
+      problems,
+    );
+
+    expect(problems).toHaveLength(docs.size);
+    expect(problems[0]).toContain('check:toc');
+    expect(problems[0]).toContain('never names it');
+  });
+
+  it('flags a check a document names that CI does not run', () => {
+    /** @type {string[]} */
+    const problems = [];
+    const docs = healthyDocs();
+    docs.set('README.md', 'runs `npm run check:config-paths` and `npm run check:removed`');
+    checkCiSurface(WORKFLOW, PACKAGE, docs, problems);
+
+    expect(problems.join('\n')).toContain('names `check:removed`');
+  });
+
+  it('flags a job CONTRIBUTING.md does not name', () => {
+    /** @type {string[]} */
+    const problems = [];
+    checkCiSurface(
+      { jobs: ['config-paths', 'brand-new'], scripts: ['check:config-paths'] },
+      PACKAGE,
+      healthyDocs(),
+      problems,
+    );
+
+    expect(problems.join('\n')).toContain('defines job `brand-new`');
+  });
+
+  it('flags a short job name that prose merely contains', () => {
+    // The defect this pins: `ci` is a substring of "decisions", so an
+    // `includes` check could never report the repository's main job as
+    // undocumented — and the case above passes anyway, because `brand-new` is
+    // too distinctive to collide. A test that only proves the easy half of a
+    // rule certifies a guarantee the code does not give.
+    /** @type {string[]} */
+    const problems = [];
+    const docs = healthyDocs();
+    docs.set(
+      'CONTRIBUTING.md',
+      'Runs `npm run check:config-paths`. See `.github/workflows/ci.yml`, and ' +
+      'docs/DECISIONS.md for architectural decisions. Install with `npm ci`.',
+    );
+    checkCiSurface({ jobs: ['ci'], scripts: ['check:config-paths'] }, PACKAGE, docs, problems);
+
+    expect(problems.join('\n')).toContain('defines job `ci`');
+  });
+
+  it('accepts a job named as a code span of its own', () => {
+    /** @type {string[]} */
+    const problems = [];
+    const docs = healthyDocs();
+    docs.set('CONTRIBUTING.md', 'The `ci` job runs `npm run check:config-paths`.');
+    checkCiSurface({ jobs: ['ci'], scripts: ['check:config-paths'] }, PACKAGE, docs, problems);
+
+    expect(problems).toEqual([]);
+  });
+
+  it('does not count a name that only appears inside a fenced block', () => {
+    // Fenced blocks are dropped before the spans are read; leaving them in
+    // desynchronised the backtick pairing and hid every real span after the
+    // first fence.
+    /** @type {string[]} */
+    const problems = [];
+    const docs = healthyDocs();
+    docs.set('CONTRIBUTING.md', '```bash\nnpm run check:config-paths\n```\n\nNothing else.');
+    checkCiSurface(WORKFLOW, PACKAGE, docs, problems);
+
+    expect(problems.join('\n')).toContain('never names it');
+  });
+
+  it('flags a workflow step calling an npm script package.json does not define', () => {
+    /** @type {string[]} */
+    const problems = [];
+    checkCiSurface(WORKFLOW, { 'check:config-paths': '...' }, healthyDocs(), problems);
+    expect(problems.join('\n')).toContain('`npm run test`, which package.json does not define');
+  });
+
+  it('treats parsing nothing as divergence, not as success', () => {
+    // Same gate as the rest of this script: a reader that silently understands
+    // nothing would pass forever while checking nothing.
+    /** @type {string[]} */
+    const problems = [];
+    checkCiSurface({ jobs: [], scripts: [] }, PACKAGE, healthyDocs(), problems);
+    expect(problems.join('\n')).toContain('the reader and the workflow have diverged');
+  });
+});
+
+describe('documentNames', () => {
+  // Tested directly because every earlier version of this rule passed the suite
+  // while being wrong: `includes` matched `ci` inside "decisions", and token
+  // boundaries matched it inside `` `npm ci` ``. Both were caught by hand, not
+  // here.
+  /** @param {string} text */
+  const names = (text) => documentNames(text).spans;
+
+  it('collects a span as the exact name it states', () => {
+    expect(names('The `ci` job runs `npm run check:toc`.'))
+      .toEqual(new Set(['ci', 'npm run check:toc']));
+  });
+
+  it('does not state a name that only appears inside a word', () => {
+    expect(names('See DECISIONS for architectural decisions.').has('ci')).toBe(false);
+  });
+
+  it('does not state a name carried by a longer span', () => {
+    // Both of these contain `ci` bounded by punctuation, which is why the
+    // boundary-based rule that preceded this one still passed.
+    const stated = names('Install with `npm ci`, see `.github/workflows/ci.yml`.');
+    expect(stated.has('ci')).toBe(false);
+    expect(stated).toEqual(new Set(['npm ci', '.github/workflows/ci.yml']));
+  });
+
+  it('ignores spans inside a fenced block', () => {
+    // A name in a worked example is not a claim about CI. Leaving fences in also
+    // desynchronised the backtick pairing for everything after them.
+    expect(names('```text\n`check:removed`\n```\n\nReal: `check:toc`.'))
+      .toEqual(new Set(['check:toc']));
+  });
+
+  it('sees spans that follow a fenced block', () => {
+    const text = '```bash\nnpm run lint\n```\n\nThen `check:toc` and `config-paths`.';
+    expect(names(text)).toEqual(new Set(['check:toc', 'config-paths']));
+  });
+
+  it('reports an unbalanced fence rather than swallowing the rest', () => {
+    const unclosed = '```text\nexample\n\nThen `check:toc`.';
+    expect(documentNames(unclosed).unbalancedFence).toBe(true);
+    expect(documentNames('```a\nx\n```\n`y`').unbalancedFence).toBe(false);
+  });
+
+  it('ignores an empty or whitespace-only span', () => {
+    expect(names('a `  ` b')).toEqual(new Set());
+  });
+});
+
+describe('packageScripts', () => {
+  it('reads the scripts map', () => {
+    expect(packageScripts('{"scripts":{"test":"vitest run"}}')).toEqual({ test: 'vitest run' });
+  });
+
+  it('treats a manifest with no scripts key as having none', () => {
+    expect(packageScripts('{"name":"x"}')).toEqual({});
+  });
+
+  it.each([
+    ['an array', '[]'],
+    ['a string', '"nope"'],
+    ['null', 'null'],
+  ])('refuses a manifest that parses to %s', (_label, source) => {
+    expect(() => packageScripts(source)).toThrow('does not parse to an object');
+  });
+
+  it('refuses a scripts key that is not an object', () => {
+    // Without this the value falls through to `{}` and every script in the
+    // workflow reports as undefined — a page of confident complaints pointing at
+    // ci.yml instead of at the manifest that is actually malformed.
+    expect(() => packageScripts('{"scripts":["test"]}')).toThrow('not an object');
   });
 });

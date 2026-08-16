@@ -170,15 +170,14 @@ Full walkthrough, database inspection and troubleshooting:
 npm run lint && npm run typecheck && npm test
 ```
 
-CI runs two more gates, each as its own job:
-
-- `npm run check:markers` — the conformance markers in
-  [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) still match the open
-  issues they name. Needs a GitHub token, so it is kept out of the line above
-  — see [`docs/ONBOARDING.md`](docs/ONBOARDING.md) to run it locally.
-- `npm run check:config-paths` — the paths the tooling configs name still
-  exist, and every root `*.config.*` file lands in a tsconfig program. Needs no
-  token and no network; run it as-is.
+Two further jobs check the documentation against the code: whether the
+conformance markers in
+[`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) still match the issues they
+name, whether the paths the tooling configs point at still exist, whether the
+description of CI still matches `ci.yml`, and whether the tables of contents in
+the long documents are current. For the commands, and what to do when one goes
+red, see [`CONTRIBUTING.md`](CONTRIBUTING.md) and
+[`docs/ONBOARDING.md`](docs/ONBOARDING.md).
 
 ---
 
@@ -189,7 +188,7 @@ CI runs two more gates, each as its own job:
 | [`AGENTS.md`](AGENTS.md) | Rules that shape code as it is written; loaded on every request. Situational workflow lives in `.claude/skills/` and `.claude/hooks/` |
 | [`docs/API-CONVENTIONS.md`](docs/API-CONVENTIONS.md) | Binding cross-cutting API contract |
 | [`docs/BOOTSTRAP.md`](docs/BOOTSTRAP.md) | Starting procedure for a new project: the decisions to settle before the first data model, distilled from getting them wrong here. The questions are stack-agnostic; the tooling assumes Claude Code |
-| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Append-only architectural decision log |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Architectural decision log — every choice with its reasoning, trade-off and rejected alternatives |
 | [`docs/LEARNING.md`](docs/LEARNING.md) | Backend concepts as they first appear in the codebase |
 | [`docs/ONBOARDING.md`](docs/ONBOARDING.md) | Local setup from a clean checkout |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Checkpoint status |
